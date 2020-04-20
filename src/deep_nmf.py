@@ -24,28 +24,71 @@ import torch.nn.functional as F
 
 class Deep_NMF(nn.Module):
     '''
-    Build a Deep NMF network structure.
-    
-    initial parameters:
-    depth_info: list, [m, k1, k2,...k_L] # Note! m must be contained in the list, which is different from the matlab version
-    c: default None, otherwise it should be a scalar indicating how many classes there are
+    Class for Neural NMF network structure.
     
     the Deep_NMF object contains several NMF layers(contained in self.lsqnonneglst, each element in the list self.lsqnonneglst is a Lsqnonneg object)
     and a linear layer for classification(self.linear).
+
+    Examples
+    --------
+    >>> net = Deep_NMF([m, 9], none)
+    >>> train(net, X, epoch=200, lr=1000)
+    epoch =  10 
+     tensor(228.1642, dtype=torch.float64)
+    epoch =  20 
+     tensor(228.0765, dtype=torch.float64)
+    epoch =  30 
+    ...
+
     '''
     def __init__(self, depth_info, c = None):
+        """
+        Initialize Neural NMF network
+
+        Parameters
+        ----------
+        depth_info: list, [m, k1, k2,...k_L]
+            Given X, the input, is mxn, this will approximate 
+            X = A_0 * A_1 * .. A_L * S_L, where:
+            A_i is of size depth_info[i] x depth_info[i+1] and 
+            S_L is of size depth_info[L] x n
+
+        c: default None, otherwise scalar
+            Indicates the number of classes
+
+        """
+
         super(Deep_NMF, self).__init__()
         self.depth_info = depth_info
         self.depth = len(depth_info)
         self.c= c
         self.lsqnonneglst = nn.ModuleList([LsqNonneg(depth_info[i], depth_info[i+1]) 
-                                           for i in range(self.depth-1)])
+                                           for i in range(self.depth-1)]) #ititalized a list of Nonnegative least squared objects
         if c is not None:
-            self.linear = nn.Linear(c,depth_info[-1], bias = False).double()#flip c and depth
+            self.linear = nn.Linear(c,depth_info[-1], bias = False).double()
     def forward(self, X):
+        """
+        Runs the forward pass of the Neural NMF network
+
+        Parameters
+        ----------
+        X: PyTorch Tensor, size mxn
+            The input to the Neural NMF network. The first dimension,
+            m, should match the first entry of depth_info
+
+        Returns:
+        --------
+        S_lst: list, [S_0, S_1, ..., S_L]
+            All S matrices calculated by the forward pass
+
+        pred: (Not sure the dimensions)
+            The outputs of a linaer layer following the Neural NMF layers
+
+
+        """
         S_lst = []
         for i in range(self.depth-1):
-            X = self.lsqnonneglst[i](X)
+            X = self.lsqnonneglst[i](X) #Calculates the least squares objective S = min S>=0 ||X - AS||
             S_lst.append(X)
         if self.c is None:
             return S_lst
@@ -61,9 +104,13 @@ class Energy_Loss_Func(nn.Module):
     '''
     Defining the energy loss function as in the paper deep NMF
     
-    initial parameter: 
-        lambd: the regularization parameter, defining how important the classification error is.
-        classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
+    Parameters
+    ----------
+    lambd: the regularization parameter, defining how important the classification error is.
+
+    classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
+
+
     '''
     def __init__(self,lambd = 0, classification_type = 'CrossEntropy'):
         super(Energy_Loss_Func, self).__init__()
@@ -96,9 +143,11 @@ class Recon_Loss_Func(nn.Module):
     '''
     Defining the energy loss function as in the paper deep NMF
     
-    initial parameter: 
-        lambd: the regularization parameter, defining how important the classification error is.
-        classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
+    Parameters
+    ----------
+    lambd: the regularization parameter, defining how important the classification error is.
+
+    classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
     '''
     def __init__(self,lambd = 0, classification_type = 'CrossEntropy'):
         super(Recon_Loss_Func, self).__init__()
