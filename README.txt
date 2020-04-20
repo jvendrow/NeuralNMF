@@ -19,17 +19,17 @@ INTRO:
  NOTE: all the variables in the network should be torch.DoubleTensor instead of torch.FloatTensor!
     
 NETWORK STRUCTURE SECTION:
-    deep_nmf.Ipynb: Currently this is the thing might be most frequently used. The basic structure is simply piling up the Lsqnonneg module (and add a classification layer at the top if it is a supervised or semisupervised task). Details are contained in the comments in this notebook.
+    deep_nmf.py: Currently this is the thing might be most frequently used. The basic structure is simply piling up the Lsqnonneg module (and add a classification layer at the top if it is a supervised or semisupervised task). Details are contained in the comments in this notebook.
     lsqnonneg_module.Ipynb: This is the basic module for the whole package. It defines the forward and backward process of the nonlinear function q. (Here the forward process means solving the optimization problem: min_{S>=0} ||X - AS||_F^2, and the backward process means find the derivative of q with respect to A and X)
     
 TRAINING SECTION:
-    train.Ipynb: Defines the training process of unsupervised and supervised(or semisupervised) learning. The optimization algorithm is simply projection gradient descent. The two functions are called 'train_unsupervised' and 'train_supervised'.
+    train.py: Defines the training process of unsupervised and supervised(or semisupervised) learning. The optimization algorithm is simply projection gradient descent. The two functions are called 'train_unsupervised' and 'train_supervised'.
 
 HISTORY RECORDING SECTION:
-    writer.Ipynb: Creates a history recording class. This class is only designed for debugging and analyzing the result. If you don't need it or can find better ways to do this, then simply ignore this section.
+    writer.py: Creates a history recording class. This class is only designed for debugging and analyzing the result. If you don't need it or can find better ways to do this, then simply ignore this section.
 
 DATA LOADING SECTION:
-    data_loading.Ipynb:Loading the bag of words dataset.
+    data_loading.py:Loading the bag of words dataset.
 
 DEMO:
     demo.Ipynb: A demo for training unsupervised, one-layer NMF and supervised, one_layer NMF.
