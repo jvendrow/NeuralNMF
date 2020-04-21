@@ -23,7 +23,7 @@ import torch.nn.functional as F
 
 
 class Deep_NMF(nn.Module):
-    '''
+    """
     Class for Neural NMF network structure.
     
     the Deep_NMF object contains several NMF layers(contained in self.lsqnonneglst, each element in the list self.lsqnonneglst is a Lsqnonneg object)
@@ -40,7 +40,7 @@ class Deep_NMF(nn.Module):
     epoch =  30 
     ...
 
-    '''
+    """
     def __init__(self, depth_info, c = None):
         """
         Initialize Neural NMF network
@@ -76,8 +76,8 @@ class Deep_NMF(nn.Module):
             The input to the Neural NMF network. The first dimension,
             m, should match the first entry of depth_info
 
-        Returns:
-        --------
+        Returns
+        -------
         S_lst: list, [S_0, S_1, ..., S_L]
             All S matrices calculated by the forward pass
 
@@ -101,7 +101,7 @@ class Deep_NMF(nn.Module):
 
 
 class Energy_Loss_Func(nn.Module):
-    '''
+    """
     Defining the energy loss function as in the paper deep NMF
     
     Parameters
@@ -111,7 +111,7 @@ class Energy_Loss_Func(nn.Module):
     classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
 
 
-    '''
+    """
     def __init__(self,lambd = 0, classification_type = 'CrossEntropy'):
         super(Energy_Loss_Func, self).__init__()
         self.lambd = lambd
@@ -140,7 +140,7 @@ class Energy_Loss_Func(nn.Module):
 
 
 class Recon_Loss_Func(nn.Module):
-    '''
+    """
     Defining the energy loss function as in the paper deep NMF
     
     Parameters
@@ -148,7 +148,7 @@ class Recon_Loss_Func(nn.Module):
     lambd: the regularization parameter, defining how important the classification error is.
 
     classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
-    '''
+    """
     def __init__(self,lambd = 0, classification_type = 'CrossEntropy'):
         super(Recon_Loss_Func, self).__init__()
         self.lambd = lambd
@@ -184,11 +184,11 @@ class Recon_Loss_Func(nn.Module):
 ## Defining all kinds of loss functions that is needed
 
 class Fro_Norm(nn.Module):
-    '''
+    """
     calculate the Frobenius norm between two matrices of the same size.
     Do: criterion = Fro_Norm()
         loss = criterion(X1,X2) and the loss is the entrywise average of the square of Frobenius norm.
-    '''
+    """
     def __init__(self):
         super(Fro_Norm, self).__init__()
         self.criterion = nn.MSELoss()
@@ -201,11 +201,11 @@ class Fro_Norm(nn.Module):
         return self.criterion(X.view(len1), Variable(torch.zeros(len1).double()))
 
 class ReconstructionLoss(nn.Module):
-    '''
+    """
     calculate the reconstruction error ||X - AS||_F^2.
     Do: criterion = ReconstructionLoss()
         loss = criterion(X, S, A) and the loss is the entrywise average of the square of Frobenius norm ||X - AS||_F^2.
-    '''
+    """
     def __init__(self):
         super(ReconstructionLoss, self).__init__()
         self.criterion = Fro_Norm()
@@ -216,12 +216,12 @@ class ReconstructionLoss(nn.Module):
     
 
 class ClassificationLossL2(nn.Module):
-    '''
+    """
     calculate the classification loss, using the criterion ||L.*(Y - Y_pred)||_F^2.
     Do: criterion = ReconstructionLoss()
         loss = criterion(Y, Y_pred) and the loss is the entrywise average of the square of Frobenius norm ||Y - Y_pred||_F^2.
         loss = criterion(Y, Y_pred, L) and the loss is the entrywise average of the square of the Frobenius norm ||L.*(Y - Y_pred)||_F^2
-    '''
+    """
     def __init__(self):
         super(ClassificationLossL2, self).__init__()
         self.criterion = Fro_Norm()
@@ -234,12 +234,12 @@ class ClassificationLossL2(nn.Module):
             return classificationloss
 
 class ClassificationLossCrossEntropy(nn.Module):
-    '''
+    """
     calculate the classification loss, using the criterion ||L.*(Y - Y_pred)||_F^2.
     Do: criterion = ReconstructionLoss()
         loss = criterion(Y, Y_pred) and the loss is the entrywise average of the square of Frobenius norm ||Y - Y_pred||_F^2.
         loss = criterion(Y, Y_pred, L) and the loss is the entrywise average of the square of the Frobenius norm ||L.*(Y - Y_pred)||_F^2
-    '''
+    """
     def __init__(self):
         super(ClassificationLossCrossEntropy, self).__init__()
         self.criterion = nn.CrossEntropyLoss()
@@ -256,10 +256,10 @@ class ClassificationLossCrossEntropy(nn.Module):
 
 
 class L21_Norm(nn.Module):
-    '''
+    """
     Defining the L21 Norm: ||X||_{2,1} = \sum ||X_i||_2
     This norm is defined to encourage row sparsity
-    '''
+    """
     def __init__(self):
         super(L21_Norm, self).__init__()
         self.criterion = nn.MSELoss()

@@ -20,9 +20,9 @@ from scipy.optimize import nnls
 
 
 class LsqNonnegF(torch.autograd.Function):
-    '''
+    """
     Define the forward and backward process for q(X,A) = argmin_{S >= 0} ||X - AS||_F^2
-    '''
+    """
     @staticmethod
     def forward(ctx, input, A):
         # note that here the input X have size(m,n)
@@ -125,10 +125,10 @@ def calc_grad_A(grad_S, A, S, X):
 
 
 class LsqNonneg(nn.Module):
-    '''
+    """
     Defining a submodule 'LsqNonneg' of the nn.Module
     with network parameter: self.A which correspond to the A matrix in the NMF decomposition
-    '''
+    """
     def __init__(self, m, k, initial_A = None):
         super(LsqNonneg, self).__init__()
         self.m = m;

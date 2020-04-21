@@ -62,7 +62,7 @@ net = Deep_NMF([m, 9])
 #loss_func = Energy_Loss_Func()
 loss_func = Recon_Loss_Func()
 X_input = X*1000
-history_unsupervised = train_unsupervised(net, X_input, loss_func, epoch = 200, lr = 1000)
+history_unsupervised = train_unsupervised(net, X_input, loss_func, epoch = 200, lr = 1000, verbose=True)
 
 
 
