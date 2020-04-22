@@ -57,7 +57,7 @@ def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, 
     Returns
     -------
     history: Writer object
-        Stores th history of the loss, A and S matrices, and A gradients.
+        Stores the history of the loss, A and S matrices, and A gradients.
         If supervised training, also stores weights and gradients from
         the linear layer.
         If full_history=False, only stores the final A and S matrices and 

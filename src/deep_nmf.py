@@ -102,17 +102,25 @@ class Deep_NMF(nn.Module):
 
 class Energy_Loss_Func(nn.Module):
     """
-    Defining the energy loss function as in the paper deep NMF
+    Defining the energy loss function as in the Neural NMF Paper
     
-    Parameters
-    ----------
-    lambd: the regularization parameter, defining how important the classification error is.
-
-    classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
-
 
     """
     def __init__(self,lambd = 0, classification_type = 'CrossEntropy'):
+        """
+        Initializes the energy loss
+
+        Parameters
+        ----------
+        lambd: float
+            The regularization parameter, defining how important the 
+            classification error is for supervised NMF. 
+
+        classification_type: String
+            'L2' or 'CrossEntropy'. Default 'CrossEntropy'
+
+        """
+
         super(Energy_Loss_Func, self).__init__()
         self.lambd = lambd
         self.classification_type = classification_type
@@ -123,6 +131,34 @@ class Energy_Loss_Func(nn.Module):
             self.criterion2 = ClassificationLossCrossEntropy()
             
     def forward(self, net, X, S_lst, pred = None, label = None, L = None):
+        """
+        Runs the forward pass of the energy loss function
+
+        Parameters
+        ----------
+        net: Pytorch Module
+            The Neural NMF object for which the loss is calculated 
+
+        X: Pytorch Tensor
+            The input to the Neural NMF network
+
+        S_lst: list, [S_0, S_1, ..., S_L]
+            All S matrices that were returned by the forward pass 
+            of the Neural NMF object
+
+        pred: ?
+
+        label: ?
+
+        L: ?
+
+        Returns
+        -------
+        reconstructionloss: float
+            The total energy loss from X, the S matrices, and
+            the A matrices
+        """
+
         total_reconstructionloss = self.criterion1(X, S_lst[0], net.lsqnonneglst[0].A)
         depth = net.depth
         for i in range(1,depth-1):
@@ -141,15 +177,21 @@ class Energy_Loss_Func(nn.Module):
 
 class Recon_Loss_Func(nn.Module):
     """
-    Defining the energy loss function as in the paper deep NMF
-    
-    Parameters
-    ----------
-    lambd: the regularization parameter, defining how important the classification error is.
+    Defining the reconstruction loss function as in the paper deep NMF
 
-    classification_type: string, 'L2' or 'CrossEntropy'. Default 'CrossEntropy'
     """
-    def __init__(self,lambd = 0, classification_type = 'CrossEntropy'):
+    def __init__(self, lambd = 0, classification_type = 'CrossEntropy'):
+        """
+        Parameters
+        ----------
+        lambd: float
+        The regularization parameter, defining how important the
+        classification error is for supervised NMF. 
+
+        classification_type: String
+            'L2' or 'CrossEntropy'. Default 'CrossEntropy'
+        """
+
         super(Recon_Loss_Func, self).__init__()
         self.lambd = lambd
         self.classification_type = classification_type
@@ -160,7 +202,34 @@ class Recon_Loss_Func(nn.Module):
             self.criterion2 = ClassificationLossCrossEntropy()
             
     def forward(self, net, X, S_lst, pred = None, label = None, L = None):
-        
+        """
+        Runs the forward pass of the energy loss function
+
+        Parameters
+        ----------
+        net: Pytorch Module
+            The Neural NMF object for which the loss is calculated 
+
+        X: Pytorch Tensor
+            The input to the Neural NMF network
+
+        S_lst: list, [S_0, S_1, ..., S_L]
+            All S matrices that were returned by the forward pass 
+            of the Neural NMF object
+
+        pred: ?
+
+        label: ?
+
+        L: ?
+
+        Returns
+        -------
+        reconstructionloss: float
+            The total reconstruction loss from X, the S matrices,
+            and the A martices.
+        """
+
         depth = net.depth
         
         X_approx = S_lst[-1]
