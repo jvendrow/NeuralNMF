@@ -168,7 +168,6 @@ def calc_grad_X(grad_S, A, S):
         The gradient of q(X,A) with respsect to X
 
     """
-
     A_np = A.numpy()
     S_np = S.numpy()
     grad_S_np = grad_S.numpy()
@@ -189,7 +188,7 @@ def calc_grad_X(grad_S, A, S):
 
 
 def calc_grad_A(grad_S, A, S, X):
-     """
+    """
     Calculates the gradient of q(X,A) with respect to X
 
     Parameters
