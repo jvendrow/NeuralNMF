@@ -154,9 +154,10 @@ class Energy_Loss_Func(nn.Module):
 
         Returns
         -------
-        reconstructionloss: float
+        reconstructionloss: Pytorch Tensor
             The total energy loss from X, the S matrices, and
-            the A matrices
+            the A matrices, stored in a 1x1 Pytorch Tensor to
+            preserve information for backpropagation.
         """
 
         total_reconstructionloss = self.criterion1(X, S_lst[0], net.lsqnonneglst[0].A)
@@ -225,9 +226,11 @@ class Recon_Loss_Func(nn.Module):
 
         Returns
         -------
-        reconstructionloss: float
+        reconstructionloss: Pytorch Tensor
             The total reconstruction loss from X, the S matrices,
-            and the A martices.
+            and the A martices, stored in a 1x1 Pytorch Tensor to
+            preserve information for backpropagation.
+
         """
 
         depth = net.depth
@@ -254,28 +257,69 @@ class Recon_Loss_Func(nn.Module):
 
 class Fro_Norm(nn.Module):
     """
-    calculate the Frobenius norm between two matrices of the same size.
-    Do: criterion = Fro_Norm()
-        loss = criterion(X1,X2) and the loss is the entrywise average of the square of Frobenius norm.
+    Calculate the Frobenius norm between two matrices of the same size.
+    This function actually returns the entrywise average of the square
+    of the Frobenius norm. 
+
+    Examples
+    --------
+    >>> criterion = Fro_Norm()
+    >>> loss = criterion(X1,X2)
+
     """
     def __init__(self):
+        """
+        Initializes the Frobenius norm module.
+
+        """
+
         super(Fro_Norm, self).__init__()
         self.criterion = nn.MSELoss()
     def forward(self,X1, X2):
+
+        """
+        Runs the forward pass of the Frobenius norm module
+
+        Parameters
+        ----------
+        X1: Pytorch Tensor
+            The first input to the Frobenius norm loss function
+
+        X2: Pytorch Tensor
+            The second input to the Frobenius norm loss function
+
+        Returns
+        -------
+        loss: Pytorch Tensor
+            The Frobenius norm of X1 and X2, stored in a 1x1 Pytorch 
+            Tensor to preserve information for backpropagation.
+
+        """
         len1 = torch.numel(X1.data)
         len2 = torch.numel(X2.data)
         assert(len1 == len2)
         X = X1 - X2
         #X.contiguous()
-        return self.criterion(X.view(len1), Variable(torch.zeros(len1).double()))
+        loss =  self.criterion(X.view(len1), Variable(torch.zeros(len1).double()))
+        return loss
 
 class ReconstructionLoss(nn.Module):
     """
     calculate the reconstruction error ||X - AS||_F^2.
-    Do: criterion = ReconstructionLoss()
-        loss = criterion(X, S, A) and the loss is the entrywise average of the square of Frobenius norm ||X - AS||_F^2.
+    Actually calcualtes the entrywise average of the 
+    square of Frobenius norm ||X - AS||_F^2.
+
+    Examples
+    --------
+    
+    >>> criterion = ReconstructionLoss()
+    >>> loss = criterion(X, S, A)
+
     """
     def __init__(self):
+        """
+        Initializes the Reconstruction Loss module
+        """
         super(ReconstructionLoss, self).__init__()
         self.criterion = Fro_Norm()
     def forward(self, X, S, A):
