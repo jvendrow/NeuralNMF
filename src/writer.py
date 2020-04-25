@@ -2,16 +2,11 @@
 # coding: utf-8
 
 
-
 # Date:2018.07.21
 # Author: Runyu Zhang
 
 
-
-
 from matplotlib import pyplot as plt
-
-
 
 
 class Writer:

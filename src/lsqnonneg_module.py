@@ -139,8 +139,14 @@ def lsqnonneg_tensor_version(A, X):
     res_total = 0
     for i in range(n):
         x = X[:,i]
-        [s, res] = nnls(A, x)
-        res_total += res
+        try:
+            [s, res] = nnls(A, x)
+            res_total += res
+        except:
+            print("Dimension mismatch when performing last squares operation")
+            print("Check depth_info to make sure the 1st element matches the 1st dimenson of input matrix")
+            print("This resulted in the following error:")
+            raise
     S[:,i] = s
     S = torch.from_numpy(S).double() # Transforming to torch Tensor
     return S, res_total
