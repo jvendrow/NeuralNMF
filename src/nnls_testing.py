@@ -56,7 +56,11 @@ class nnls_testing():
 
             for index, optimizer in enumerate(optimizers):
 
-                start = time()
+                #A = np.abs(np.random.rand(d, d))
+
+                #x = np.abs(np.random.rand(d))
+
+                time_total = 0
 
                 for i in range(repetitions):
 
@@ -64,20 +68,24 @@ class nnls_testing():
 
                     x = np.abs(np.random.rand(d))
 
+                    start = time()
+
                     [s, res] = nnls(A, x)
 
-                end = time()
+                    end = time()
+                
+                    time_total += end - start
 
                 #Print and store results
                 #-----------------------
                 print(d)
-                print(names[index] + ": " + str(end-start))
+                print(names[index] + ": " + str(time_total))
 
                 if d == dimensions[0]:
-                    nnls_times.append([end-start])
+                    nnls_times.append([time_total])
 
                 else:
-                    nnls_times[index].append(end-start)
+                    nnls_times[index].append(time_total)
 
             self.repetitions = repetitions
             self.dimensions = dimensions
