@@ -44,15 +44,6 @@ class nnls_testing():
 
         for d in dimensions:
 
-            #define matrix A and vector x
-            #------------------------------
-            #A = np.abs(np.random.rand(d, d))
-
-            #x = np.abs(np.random.rand(d))
-
-
-            #Test the speed of scipy.optimize.nnls
-            #-----------------------------------
 
             for index, optimizer in enumerate(optimizers):
 
@@ -64,13 +55,17 @@ class nnls_testing():
 
                 for i in range(repetitions):
 
+                    #define matrix A and vector x
+                    #------------------------------
+
                     A = np.abs(np.random.rand(d, d))
 
                     x = np.abs(np.random.rand(d))
 
+                    #Measure the speed of running the optimizer
                     start = time()
 
-                    [s, res] = nnls(A, x)
+                    [s, res] = optimizer(A, x)
 
                     end = time()
                 
@@ -78,8 +73,9 @@ class nnls_testing():
 
                 #Print and store results
                 #-----------------------
-                print(d)
-                print(names[index] + ": " + str(time_total))
+                if verbose:
+                    print(d)
+                    print(names[index] + ": " + str(time_total))
 
                 if d == dimensions[0]:
                     nnls_times.append([time_total])
