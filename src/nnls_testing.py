@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.optimize import nnls
+from fnnls import fnnls
 
 from time import time
 
@@ -41,6 +42,7 @@ class nnls_testing():
         """
 
         nnls_times = []
+        nnls_res = []
 
         for d in dimensions:
 
@@ -53,14 +55,16 @@ class nnls_testing():
 
                 time_total = 0
 
+                res_total = 0
+
                 for i in range(repetitions):
 
                     #define matrix A and vector x
                     #------------------------------
 
-                    A = np.abs(np.random.rand(d, d))
+                    A = np.abs(np.random.rand(d*10, d))
 
-                    x = np.abs(np.random.rand(d))
+                    x = np.abs(np.random.rand(d*10))
 
                     #Measure the speed of running the optimizer
                     start = time()
@@ -70,25 +74,30 @@ class nnls_testing():
                     end = time()
                 
                     time_total += end - start
+                    res_total += res
 
                 #Print and store results
                 #-----------------------
                 if verbose:
                     print(d)
                     print(names[index] + ": " + str(time_total))
+                    print(names[index] + ": " + str(res_total))
 
                 if d == dimensions[0]:
                     nnls_times.append([time_total])
+                    nnls_res.append([res_total])
 
                 else:
                     nnls_times[index].append(time_total)
+                    nnls_res[index].append(res_total)
 
             self.repetitions = repetitions
             self.dimensions = dimensions
             self.names = names
             self.nnls_times = nnls_times
+            self.nnls_res = nnls_res
 
-    def plot(self):
+    def plot_times(self):
         """
         Plots the time complexities of each optimizer
 
@@ -104,14 +113,33 @@ class nnls_testing():
 
         plt.show()
 
+    def plot_residuals(self):
+
+        """
+        Plots the residuals of each optimizer
+
+        """
+        #Plot the times for nnls
+        #-----------------------
+        for nnls_res in self.nnls_res:
+            plt.plot(self.dimensions, nnls_res)
+
+        plt.xlabel("dimension")
+        plt.ylabel("time (s) for " +  str(self.repetitions) + " runs")
+        plt.legend(self.names)
+
+        plt.show()
+
+
 
 testing = nnls_testing()
 
-repetitions = 25
+repetitions = 5
 dimensions = np.arange(20, 400, 20)
-optimizers = [nnls, nnls]
-names = ["scipy.optimize.nnls1", "scipy.optimize.nnls2"]
+optimizers = [nnls, fnnls]
+names = ["scipy.optimize.nnls", "fnnls"]
 
 testing.test(repetitions, dimensions, optimizers, names, verbose=True)
 
-testing.plot()
+testing.plot_times()
+testing.plot_residuals()

@@ -143,7 +143,7 @@ def lsqnonneg_tensor_version(A, X):
             [s, res] = nnls(A, x)
             res_total += res
         except:
-            print("Dimension mismatch when performing last squares operation")
+            print("Dimension mismatch when performing least squares operation")
             print("Check depth_info to make sure the 1st element matches the 1st dimenson of input matrix")
             print("This resulted in the following error:")
             raise
