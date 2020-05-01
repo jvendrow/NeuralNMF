@@ -1,12 +1,12 @@
 import numpy as np
 
-def fnnls(Z, x):
+def fnnls(Z, x, maxiter=10):
     """
     Implementation of the Fast Non-megative Least Squares Algorithm described
     in the paper "A fast non-negativity-constrained least squares algorithm"
     by Rasmus Bro and Sijmen De Jong
 
-    This algorithm seeks to find min_d ||x - Zd||^2 subject to d >= 0
+    This algorithm seeks to find min_d ||x - Zd|| subject to d >= 0
 
     Parameters
     ----------
@@ -22,8 +22,26 @@ def fnnls(Z, x):
         d is a nx1 vector
     """
 
+    Z, x = map(np.asarray_chkfinite, (Z, x))
+
+    """
+    if type(Z) is not np.ndarray:
+        raise TypeError("Expected a NumPy array, but Z is of type {}".format(type(Z)))
+
+    if type(x) is not np.ndarray:
+        raise TypeError("Expected a NumPy array, but x is of type {}".format(type(x)))
+
+    """
+
+    if len(Z.shape) != 2:
+        raise ValueError("Expected a two-dimensional array, but Z is of shape {}".format(Z.shape))
+    if len(x.shape) != 1:
+        raise ValueError("Expected a one-dimensional array, but x is of shape {}".format(x.shape))
+
     m, n = Z.shape
 
+    if x.shape[0] != m:
+        raise ValueError("Incompatable dimensions. The first dimension of Z should match the length of x, but Z is of shape {} and x is of shape {}".format(Z.shape, x.shape))
 
     ZTZ = Z.T @ Z
 
@@ -40,14 +58,20 @@ def fnnls(Z, x):
 
     s = np.zeros(n)
 
-    tolerance = 10 * 2.2204e-16 * np.linalg.norm(ZTZ) * max(n,m)
+    epsilon = 2.2204e-16
+    tolerance = 10 * epsilon * np.linalg.norm(ZTZ) * max(n,m)
 
-    max_iter_out = 0.1*n
-    max_iter_in = n
+    max_iter_in = 30*n
+
     #B1
     i = 0
-    while len(R) and np.max(w[list(R)]) > tolerance and i < max_iter_in:
-        i += 2
+
+    no_update = 0
+
+    while len(R) and np.max(w[list(R)]) > tolerance:
+
+        current_passive = P.copy() #make copy of passive set to check for change at end of loop
+
         #B2 
         ind = list(R)[np.argmax(w[list(R)])]
         #B3
@@ -61,17 +85,19 @@ def fnnls(Z, x):
         #C1
         j = 0
         while np.min(s[P_ind]) <= tolerance and j < max_iter_in:
-            j += 1
+
             #C2
-            alpha = np.min(d / (d-s + 1e-8))
+            alpha = np.min(d[P_ind] / d[P_ind] - s[P_ind])
             #C3
-            d = d + alpha * (s-d)
+            #d = d + alpha * (s-d) #set d as close to s as possible while maintaining non-negativity
             #C4
             #passive = set(np.asarray(P_ind)[s[P_ind] <= tolerance])
             passive = {p for p in P_ind if s[p] <= tolerance}
 
-            P = passive
-            R = {s for s in range(0,n) if s not in passive}
+            #P = passive
+            #R = {s for s in range(0,n) if s not in passive}
+            P.difference_update(passive)
+            R.update(passive)
             P_ind = list(P)
             R_ind = list(R)
             #C5
@@ -79,9 +105,20 @@ def fnnls(Z, x):
             #c6
             s[R_ind] = np.zeros(len(R))
 
+            j += 1
+
         #B5
         d = s
         w = ZTx - (ZTZ) @ d
 
-    res = np.linalg.norm(x - Z@d)
+        if(current_passive == P): #check of there has been a check to the passive set
+            no_update += 1
+        else:
+            no_update = 0
+
+        if no_update > 5: #if the passive set hasn't change for multiple iterations, end
+            break
+
+    res = np.linalg.norm(x - Z@d) #Calculate residual loss ||x - Zd||
+
     return [d, res]
