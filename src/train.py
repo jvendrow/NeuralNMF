@@ -1,15 +1,21 @@
 #!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
 
+'''
+    Functions for training (semi-supervised) hierarchical NMF model via Neural NMF.
 
+    Examples
+    --------
+    >>> net = Neural_NMF([m, 9], none)                            #declares object from Neural NMF module
+    >>> train(net, X, epoch=200, lr=1000)                            
+    epoch =  10 
+     tensor(228.1642, dtype=torch.float64)
+    epoch =  20 
+     tensor(228.0765, dtype=torch.float64)
+    epoch =  30 
+    ...
+'''
 
-# Date: 2018.07.22
-# Author: Runyu Zhang
-
-
-
-
-#import Ipynb_importer
 from neural_nmf import Neural_NMF, Recon_Loss_Func, Energy_Loss_Func, Fro_Norm
 from writer import Writer
 import torch
@@ -20,113 +26,109 @@ from matplotlib import pyplot as plt
 from torch.autograd import Variable
 
 
-def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, epoch=10, lr=1e-3, lr_classification=1e-3, weight_decay=1, verbose=True, full_history=False):
+def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, epoch=10, lr=1e-3, lr_classification=1e-3, weight_decay=1, class_iters=1, decay_epoch=1, verbose=True,verbose_epoch=1, full_history=False):
 
     """
-    Training the unsupervised Neural_NMF with projection gradient descent.
+    Training the Neural_NMF with projected gradient descent.
     
     Parameters
     ----------
-    net: Pytorch Module
-        The Neural_NMF object to be trained. Note that it should 
-        be the unsupervised version, so c = None for the Neural_NMF.
-
+    net: Pytorch Neural NMF module object
+        The Neural NMF object to be trained. 
     X: PyTorch Tensor
-        The data matrix to input into the Neural NMF network
-
-    loss_func: string or Pytorch Module
-        The loss function. If the input is a string, uses one
-        of the default loss functions. If the input is a Pytorch
-        Module, uses that module, allowing for custom loss functions.
-        Default loss functions:
-            'Recon Loss': Reconstruction Loss Function
-            'Energy Loss': Energy Loss Functions
-
-    epoch: integer
-        How many time you want to feed in the data matrix to the network, default 10
-
-    lr: float
-        The learning rate, default 1e-3.
-
-    lr_classification: float
-        The learning rate for the classification layer, default 1e-3.
-
-    weight_decay: float
-        The weight decay parameter, doing lr = lr*weight_decay every epoch.
+        The data matrix input into the Neural NMF network (m x n).
+    loss_func: string or Pytorch Module, optional
+        The loss function. If the input is a string, uses one of the default loss functions 'Recon Loss' 
+        or 'Energy Loss' (default is 'Recon Loss'). If the input is a Pytorch Module, uses that module, 
+        allowing for custom loss functions.
+    supervised: bool, optional
+        Indicator for supervision (default is False).
+    label: PyTorch tensor, optional
+        The classification (label) matrix for supervised model.  If the classification_type is 'L2',
+        this matrix is a one-hot encoding matrix of size c x n.  If the classification_type is
+        'CrossEntropy', this matrix is of size n with elements in [0,c-1] (default is None).
+    L: PyTorch tensor, optional
+        The label indicator matrix for semi-supervised model that indicates if labels are known 
+        for n data points, of size c x n with columns of all ones or all zeros to indicate if label
+        for that data point is known (default is None).
+    epoch: int_, optional
+        Number of epochs in training procedure (default 10).
+    lr: float_, optional
+        The learning rate for the NMF layers (default 1e-3).
+    lr_classification: float_, optional
+        The learning rate for the classification layer (default 1e-3).
+    weight_decay: float, optional
+        The weight decay parameter, doing lr = lr*weight_decay every decay_epoch epochs (default 1).
+    class_iters: int_, optional
+        Number of gradient steps to take on classification term each epoch (default 1).
+    decay_epoch: int_, optional
+        Number of epochs to take before decaying the learning rates (default 1).
+    verbose: bool, optional
+        Indicator for whether to print the loss every verbose_epoch epochs (default True).
+    verbose_epoch: int_, optional
+        Number of epochs to take before printing the loss (default 1).
+    full_history: bool, optional
+        Indicator for whether to save all information from every epoch (default False).
 
     Returns
     -------
-    history: Writer object
-        Stores the history of the loss, A and S matrices, and A gradients.
-        If supervised training, also stores weights and gradients from
-        the linear layer.
-        If full_history=False, only stores the final A and S matrices and 
-        A gradient from after last epoch.
+    history: Writer object or pair of lists of PyTorch tensors
+        If Writer object (full_history=True), the history of the loss, A and S matrices, and A gradients 
+        (if supervised training, also stores weights and gradients from the linear layer).
+        If pair of lists of PyTorch tensors (full_history=False), stores the final A and S matrices and 
+        A gradients from after last epoch.
 
     """
     if supervised == False:
 
-        history = train_unsupervised(net, X, loss_func=loss_func, epoch = epoch, lr = lr, weight_decay = weight_decary, verbose=verbose, full_history = full_history)
+        history = train_unsupervised(net, X, loss_func=loss_func, epoch = epoch, lr = lr, weight_decay = weight_decay, decay_epoch=decay_epoch, verbose=verbose, verbose_epoch=verbose_epoch, full_history = full_history)
 
     else:
-        history = train_supervised(net, X, label=label, L=L, loss_func=loss_func, epoch = 10, lr_nmf = lr, lr_classification = lr_classification, weight_decay = weight_decay, verbose=verbose, full_history = full_history)
+        history = train_supervised(net, X, label=label, L=L, loss_func=loss_func, epoch = 10, lr_nmf = lr, lr_classification = lr_classification, weight_decay = weight_decay, class_iters=class_iters, decay_epoch=decay_epoch, verbose=verbose, verbose_epoch=verbose_epoch, full_history = full_history)
 
     return history
 
 
 
-def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, weight_decay = 1, verbose=True, full_history=False):
+def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, weight_decay = 1, decay_epoch=1, verbose=True, verbose_epoch=1, full_history=False):
     """
-    Training the unsupervised Neural_NMF with projection gradient descent.
+    Training the unsupervised Neural_NMF with projected gradient descent.
     
     Parameters
     ----------
-    net: Pytorch Module
-        The Neural_NMF object to be trained. Note that it should 
-        be the unsupervised version, so c = None for the Neural_NMF.
-
+    net: Pytorch Neural NMF module object
+        The Neural NMF object to be trained (since unsupervised, net.c = None). 
     X: PyTorch Tensor
-        The data matrix to input into the Neural NMF network.
-
-        The loss function This loss function should have lambd = None or 0
-
-    loss_func: string or Pytorch Module
-        The loss function. If the input is a string, uses one
-        of the default loss functions. If the input is a Pytorch
-        Module, uses that module, allowing for custom loss functions.
-        Default loss functions:
-            'Recon Loss': Reconstruction Loss Function
-            'Energy Loss': Energy Loss Functions
-        For unsupervised training, any custom loss function
-        should have lambd = None or 0.
-
-
-    epoch: integer
-        How many time you want to feed in the data matrix to the network, default 10.
-
-    lr: float
-        The learning rate, default 1e-3.
-
-    weight_decay: float
-        The weight decay parameter, doing lr = lr*weight_decay every epoch.
-
-    verbose: bool
-        If true, display the current loss at select epochs.
+        The data matrix input into the Neural NMF network (m x n).
+    loss_func: string or Pytorch Module, optional
+        The loss function. If the input is a string, uses one of the default loss functions 'Recon Loss' 
+        or 'Energy Loss' (default is 'Recon Loss'). If the input is a Pytorch Module, uses that module, 
+        allowing for custom loss functions. For unsupervised training, any custom loss function should 
+        have lambd = None or 0.
+    epoch: int_, optional
+        Number of epochs in training procedure (default 10).
+    lr: float_, optional
+        The learning rate for the NMF layers (default 1e-3).
+    weight_decay: float, optional
+        The weight decay parameter, doing lr = lr*weight_decay every decay_epoch epochs (default 1).
+    decay_epoch: int_, optional
+        Number of epochs to take before decaying the learning rates (default 1).
+    verbose: bool, optional
+        Indicator for whether to print the loss every verbose_epoch epochs (default True).
+    verbose_epoch: int_, optional
+        Number of epochs to take before printing the loss (default 1).
+    full_history: bool, optional
+        Indicator for whether to save all information from every epoch (default False).
 
     Returns
     -------
-    history: Writer object
+    history: Writer object, optional
         If full_history=True, stores the history of the loss, A and S matrices, 
         and A gradients at each epoch.
-
-    A_lst: list
-        If full_history=False, stores a list of the A matries,
-        A_0, A_1, ... A_L.
-
-    S_lst: list
-        If full_history=False, stores a list of the S matries,
-        S_0, S_1, ... S_L.
-
+    A_lst: list, optional
+        If full_history=False, stores a list of the A PyTorch tensors, A_0, A_1, ... A_L.
+    S_lst: list, optional
+        If full_history=False, stores a list of the S PyTorch tensors, S_0, S_1, ... S_L.
         
     """
 
@@ -154,81 +156,78 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
                 history.add_tensor('S' + str(l+1), S_lst[l].data)
 
             if not full_history and i == epoch-1:
-                A_lst.append(A)
+               A_lst.append(A)
 
-            # projection gradient descent
+            # projected gradient descent
             A.data = A.data.sub_(lr*A.grad.data)
             A.data = A.data.clamp(min = 0)
-        lr = lr*weight_decay
-        if verbose and (i+1)%10 == 0:
+        
+        if verbose and (i+1)%verbose_epoch == 0:
             print('epoch = ', i+1, '\n', loss.data)
+        if (i+1)%decay_epoch == 0:
+            lr = lr*weight_decay
 
     if full_history:        
         return history
     else:
         return A_lst, S_lst
 
-def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10, lr_nmf = 1e-3, lr_classification = 1e-3, weight_decay = 1, verbose=True, full_history=False):
+def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10, lr_nmf = 1e-3, lr_classification = 1e-3, weight_decay = 1, class_iters=1, decay_epoch=1, verbose=True, verbose_epoch=1, full_history=False):
 
     """
-    Training the supervised Neural_NMF with projection gradient descent.
+    Training the supervised Neural_NMF with projected gradient descent (PGD). In each epoch, we update the NMF
+    layers with one PGD step and the classification layer with one PGD step.
 
-    For each epoch we update the NMF layer and the classification layer separately. First update the NMF layer for once
-    and then update the classification layer for thirty times. The learning rate is 
-
-    
     Parameters
     ----------
-    net: Pytorch Module
-        The Neural_NMF object to be trained. Note that it should 
-        be the unsupervised version, so c = None for the Neural_NMF.
-
-    X: PyTorch Tensor
-        The data matrix to input into the Neural NMF network
-
-    loss_func: string or Pytorch Module
-        The loss function. If the input is a string, uses one
-        of the default loss functions. If the input is a Pytorch
-        Module, uses that module, allowing for custom loss functions.
-        Default loss functions:
-            'Recon Loss': Reconstruction Loss Function
-            'Energy Loss': Energy Loss Functions
-
-    label: ?
-
-    L: ?
-
-    epoch: integer
-        How many time you want to feed in the data matrix to the network, default 10
-
-    lr: float
-        The learning rate for the NMF layers, default 1e-3
-
-    lr_classification: float
-        The learning rate for the classification layer, default 1e-3
-
-    weight_decay: float
-        The weight decay parameter, doing lr = lr*weight_decay every epoch
-
-    verbose: bool
-        If true, display the current loss at every epoch
+    net: Pytorch Neural NMF module object
+        The Neural NMF object to be trained. 
+    X: PyTorch tensor
+        The data matrix input into the Neural NMF network (m x n).
+    label: PyTorch tensor
+        The classification (label) matrix for supervised model.  If the classification_type is 'L2',
+        this matrix is a one-hot encoding matrix of size c x n.  If the classification_type is
+        'CrossEntropy', this matrix is of size n with elements in [0,c-1] (default is None).
+    L: PyTorch tensor, optional
+        The label indicator matrix for semi-supervised model that indicates if labels are known 
+        for n data points, of size c x n with columns of all ones or all zeros to indicate if label
+        for that data point is known (default is None).
+    loss_func: string or Pytorch Module, optional
+        The loss function. If the input is a string, uses one of the default loss functions 'Recon Loss' 
+        or 'Energy Loss' (default is 'Recon Loss'). If the input is a Pytorch Module, uses that module, 
+        allowing for custom loss functions. 
+    epoch: int_, optional
+        Number of epochs in training procedure (default 10).
+    lr_nmf: float_, optional
+        The learning rate for the NMF layers (default 1e-3).
+    lr_classification: float_, optional
+        The learning rate for the classification layer (default 1e-3).
+    weight_decay: float, optional
+        The weight decay parameter, doing lr = lr*weight_decay every decay_epoch epochs (default 1).
+    class_iters: int_, optional
+        Number of PGD updates to make to classification layer each epoch (default 1).
+    decay_epoch: int_, optional
+        Number of epochs to take before decaying the learning rates (default 1).
+    verbose: bool, optional
+        Indicator for whether to print the loss every verbose_epoch epochs (default True).
+    verbose_epoch: int_, optional
+        Number of epochs to take before printing the loss (default 1).
+    full_history: bool, optional
+        Indicator for whether to save all information from every epoch (default False).
 
     Returns
     -------
-     history: Writer object
+    history: Writer object, optional
         If full_history=True, stores the history of the loss, A and S matrices, 
-        A gradients, and the weights and graduents of the linear layer used for
-        classification at each epoch.
-
-    A_lst: list
-        If full_history=False, stores a list of the A matries,
-        A_0, A_1, ... A_L.
-
-    S_lst: list
-        If full_history=False, stores a list of the S matries,
-        S_0, S_1, ... S_L.
+        and A gradients at each epoch.
+    A_lst: list, optional
+        If full_history=False, stores a list of the A PyTorch tensors, A_0, A_1, ... A_L.
+    S_lst: list, optional
+        If full_history=False, stores a list of the S PyTorch tensors, S_0, S_1, ... S_L.
 
     """
+
+    loss_functions = {"Recon Loss": Recon_Loss_Func(), "Energy Loss": Energy_Loss_Func()}
 
     A_lst = []
     history = Writer() # creating a Writer object to record the history for the training process
@@ -237,7 +236,11 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
         # doing gradient update for NMF layer
         net.zero_grad()
         S_lst, pred = net(X)
-        loss = loss_func(net, X, S_lst, pred, label, L)
+        loss = None
+        if type(loss_func) == str:
+            loss = loss_functions[loss_func](net, X, S_lst)
+        else:
+            loss = loss_func(net, X, S_lst)
         loss.backward()
         for l in range(net.depth - 1):
             history.add_scalar('loss',loss.data)
@@ -255,24 +258,30 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
             A.data = A.data.clamp(min = 0)
             
         # doing gradient update for classification layer
-        for iter_classifier in range(30):
+        for iter_classifier in range(class_iters):
             net.zero_grad()
             S_lst, pred = net(X)
-            loss = loss_func(net, X, S_lst, pred, label, L)
+            loss = None
+            if type(loss_func) == str:
+                loss = loss_functions[loss_func](net, X, S_lst,pred,label,L)
+            else:
+                loss = loss_func(net, X, S_lst,pred,label,L)
             loss.backward()
             S_lst[0].detach()
             history.add_scalar('loss',loss.data)
             weight = net.linear.weight
             weight.data = weight.data.sub_(lr_classification*weight.grad.data)
+            weight.data = weight.data.clamp(min = 0) #added by Jamie (shouldn't we make sure B >= 0?)
             if full_history:
                 history.add_tensor('weight', weight.data.clone())
                 history.add_tensor('grad_weight', weight.grad.data.clone())
         
         
-        lr_nmf = lr_nmf*weight_decay
-        lr_classification = lr_classification*weight_decay
-        if(verbose):
+        if(verbose) and (i+1)%verbose_epoch == 0:
             print('epoch = ', i+1, '\n', loss.data)
+        if (i+1)%decay_epoch == 0:
+            lr_nmf = lr_nmf*weight_decay
+            lr_classification = lr_classification*weight_decay
 
     if full_history:        
         return history
