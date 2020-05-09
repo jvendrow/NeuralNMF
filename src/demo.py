@@ -36,6 +36,8 @@ from data_loading import Label_BOW as label
 from data_loading import Y_BOW as Y
 from data_loading import L_BOW as L
 
+from time import time
+
 # set the network parameters
 X = X.T
 m = X.shape[0]
@@ -50,8 +52,12 @@ net = Neural_NMF([m, 9])
 #loss_func = Energy_Loss_Func()
 loss_func = Recon_Loss_Func()
 X_input = X*1000
-history_unsupervised = train_unsupervised(net, X_input, loss_func, epoch = 200, lr = 1000, verbose=True)
 
+start = time()
+history_unsupervised = train_unsupervised(net, X_input, loss_func, epoch = 200, lr = 1000, full_history=True, verbose=True)
+end = time()
+
+print("Training time: {}".format(end-start))
 # by calling history_unsupervised.get('variable_name'), you can get the variables that you recorded in the writer
 # getting these results might be helpful for debugging and choosing hyperparameters
 A1_lst = history_unsupervised.get('A1')

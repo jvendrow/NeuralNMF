@@ -62,9 +62,9 @@ class nnls_testing():
                     #define matrix A and vector x
                     #------------------------------
 
-                    A = np.abs(np.random.rand(d*10, d))
+                    A = np.abs(np.random.rand(d*1000, d)) * 100
 
-                    x = np.abs(np.random.rand(d*10))
+                    x = np.abs(np.random.rand(d*1000)) * 100
 
                     #Measure the speed of running the optimizer
                     start = time()
@@ -122,10 +122,10 @@ class nnls_testing():
         #Plot the times for nnls
         #-----------------------
         for nnls_res in self.nnls_res:
-            plt.plot(self.dimensions, nnls_res)
+            plt.plot(self.dimensions, [i / self.repetitions for i in nnls_res])
 
         plt.xlabel("dimension")
-        plt.ylabel("time (s) for " +  str(self.repetitions) + " runs")
+        plt.ylabel("Average Residual")
         plt.legend(self.names)
 
         plt.show()
@@ -134,8 +134,9 @@ class nnls_testing():
 
 testing = nnls_testing()
 
-repetitions = 5
-dimensions = np.arange(20, 400, 20)
+repetitions = 10
+#dimensions = np.asarray([16, 25,32, 64])
+dimensions = np.arange(10, 40, 10)
 optimizers = [nnls, fnnls]
 names = ["scipy.optimize.nnls", "fnnls"]
 

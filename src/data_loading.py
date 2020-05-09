@@ -39,25 +39,3 @@ Y_BOW = Y_BOW.get('Y')
 Y_BOW = Y_BOW.T
 Y_BOW = torch.from_numpy(Y_BOW).double()
 Y_BOW = Variable(Y_BOW)
-
-
-
-
-def temp(a,b,c):
-    return a,b
-
-
-
-
-a,b = temp(1,2,3)
-
-
-
-
-a
-
-
-
-
-
-

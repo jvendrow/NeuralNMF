@@ -18,6 +18,8 @@ from scipy.optimize import nnls
 
 from fnnls import fnnls
 
+from time import time
+
 
 
 
@@ -27,7 +29,7 @@ class LsqNonnegF(torch.autograd.Function):
 
     """
     @staticmethod
-    def forward(ctx, input, A):
+    def forward(ctx, input, A, last_S=None):
         """
 
         Runs the forward pass of the nonnegative least squares task q(X,A).
@@ -57,14 +59,14 @@ class LsqNonnegF(torch.autograd.Function):
 
         """
 
-        [output, res] = lsqnonneg_tensor_version(A.data, input.data)
+        [output, res] = lsqnonneg_tensor_version(A.data, input.data, last_S)
         # normalize the output
         #output_sum = torch.sum(output, dim =1) + 1e-10
         #output = output.t()/output_sum
         #output = output.t()
         #A.data = A.data.t()*output_sum
         #A.data = A.data.t()
-        ctx.save_for_backward(input, A)
+        ctx.save_for_backward(input, A, None)
         #output = output.t()
         ctx.intermediate = output
         return output.t().t()
@@ -97,7 +99,7 @@ class LsqNonnegF(torch.autograd.Function):
 
         """
 
-        input, A = ctx.saved_tensors
+        input, A, a = ctx.saved_tensors
         grad_input = grad_A = None
         output = ctx.intermediate
         if ctx.needs_input_grad[0]:
@@ -106,12 +108,12 @@ class LsqNonnegF(torch.autograd.Function):
         if ctx.needs_input_grad[1]:
             grad_A = calc_grad_A(grad_output, A.data, output, input.data) # calculate gradient with respect to A
             #grad_A = grad_A.t()
-        return grad_input, grad_A
+        return grad_input, grad_A, None
 
 
 
 
-def lsqnonneg_tensor_version(A, X):
+def lsqnonneg_tensor_version(A, X, last_S = None):
     """
     Calculates the nonnegative least squares solution q(X,A)
 
@@ -132,6 +134,8 @@ def lsqnonneg_tensor_version(A, X):
         The S matrix, S = q(X,A)
 
     """
+    start = time()
+
     A = A.numpy() # Transforming to numpy array size(m,k)
     X = X.numpy() # size(m,n)
     m = X.shape[0]
@@ -141,9 +145,17 @@ def lsqnonneg_tensor_version(A, X):
     res_total = 0
     for i in range(n):
         x = X[:,i]
+
+        if last_S != None:
+            P_init = {j for j in range(k) if last_S[j,i] > 0}
+            #if i == 0:
+            #   print(P_init)
+        else:
+            P_init = set()
+
         try:
             #[s, res] = nnls(A, x)
-            [s, res] = fnnls(A, x)
+            [s, res] = fnnls(A, x, P_init=P_init)
             res_total += res
         except:
             print("Dimension mismatch when performing least squares operation")
@@ -152,6 +164,9 @@ def lsqnonneg_tensor_version(A, X):
             raise
         S[:,i] = s
     S = torch.from_numpy(S).double() # Transforming to torch Tensor
+
+    end = time()
+    print(end-start)
     return S, res_total
 
 
@@ -276,7 +291,7 @@ class LsqNonneg(nn.Module):
         else:
             self.A.data = initial_A
         
-    def forward(self, input):
+    def forward(self, input, last_S=None):
         """
         The forward pass of the LsqNonneg submodule
 
@@ -292,7 +307,7 @@ class LsqNonneg(nn.Module):
             which calculaetes S = q(X,A)
         """
 
-        return LsqNonnegF.apply(input, self.A)
+        return LsqNonnegF.apply(input, self.A, last_S)
 
 
 
