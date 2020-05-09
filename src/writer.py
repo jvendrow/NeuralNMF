@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
 
-
-# Date:2018.07.21
-# Author: Runyu Zhang
-
+'''
+    Class and functions for recording and visualizing Neural NMF results.
+'''
 
 from matplotlib import pyplot as plt
 
@@ -12,33 +11,37 @@ from matplotlib import pyplot as plt
 class Writer:
 
     """
-    Records a history of scalar and Tensor information
-    and plots the Tensors.
+    Records a history of the Neural NMF epochs in dictionaries and visualizes various information.
 
+    Methods
+    ----------
+    add_scalar(name, scalar)
+        Adds a value to the list of scalars stored under the proper key in the scalar dictionary.
+    add_tensor(name, tensor)
+        Adds a PyTorch tensor to the list of tensors stored under the proper key in the tensor dictionary.
+    get(name)
+        Fetches the list of scalars or tensors stored under name.
+    plot_scalar(name)
+        Plots the list of scalars stored in the scalar dictionary under the key name.
+    plot_tensor(name)
+        Plots the tensor stored in the idx_lst index of the list in the tensor dictionary corresponding
+        to the key name.
     """
 
     def __init__(self):
-        """
-        Initialized the scalar and tensor dictionaries.
-
-        """
-
         self.scalar_dict = {}
         self.tensor_dict = {}
         
     def add_scalar(self, name, scalar):
         """
-        Adds a value to the list of scalars stored 
-        under the proper key in the scalar dictionary.
+        Adds a value to the list of scalars stored under the proper key in the scalar dictionary.
 
         Parameters
         ----------
-        name: String
-            The key value for access the scalar dictionary
-
-        scalar: float
-            The value to add to the list stored under
-            scalar_dict[name].
+        name: string
+            The key value for accessing the scalar dictionary.
+        scalar: float_
+            The value to add to the list stored under scalar_dict[name].
 
         """
         if self.scalar_dict.get(name) is None:
@@ -48,17 +51,14 @@ class Writer:
             
     def add_tensor(self, name, tensor):
         """
-        Adds a Pytorch Tensor to the list of tensors stored 
-        under the proper key in the Tensor dictionary.
+        Adds a PyTorch tensor to the list of tensors stored under the proper key in the tensor dictionary.
 
         Parameters
         ----------
-        name: String
-            The key value for access the tensor dictionary
-
-        scalar: Pytorch Tensor
-            The Tensor to add to the list stored under
-            scalar_dict[name].
+        name: string
+            The key value for accessing the tensor dictionary.
+        scalar: PyTorch tensor
+            The tensor to add to the list stored under tensor_dict[name].
 
         """
 
@@ -69,21 +69,18 @@ class Writer:
             
     def get(self, name):
         """
-        Fetches the list of scalars or tensors stores
-        under name. Searches the scalar list before
-        the tensor list.
+        Fetches the list of scalars or tensors stored under name. Searches the scalar list before the 
+        tensor list.
 
         Parameters
         ----------
-        name: String
-            the key by which to search the scalar
-            and tensor dictionaries. 
+        name: string
+            The key by which to search the scalar and tensor dictionaries. 
 
         Returns
         -------
-        values: list 
-            The list of scalars or Tensors that corresponds
-            to name, the key value. If no the key value is not
+        values: list, optional
+            The list of scalars or tensors that correspond to name, the key value. If key value is not
             in either dictionary, returns None.
 
         """
@@ -100,14 +97,12 @@ class Writer:
                 
     def plot_scalar(self, name):
         """
-        Plots the list of scalars stores in the scalar
-        dictionary under the key name.
+        Plots the list of scalars stored in the scalar dictionary under the key name.
 
         Parameters
         ----------
-        name: String
-            The key by which to search the scalar
-            dictionaries. 
+        name: string
+            The key by which to search the scalar dictionaries. 
 
         """
 
@@ -117,25 +112,21 @@ class Writer:
         
     def plot_tensor(self, name, idx_lst):
         """
-        Plots the tensor stored in the idx_lst index
-        of the list in the tensor dictionary corresponding
+        Plots the tensor stored in the idx_lst index of the list in the tensor dictionary corresponding
         to the key name.
 
         Parameters
         ---------
-        name: String
-            The key by which to search the tensor 
-            dictionaries.
-
-        idx_list: integer
-            The index of the list of Tensors for
-            the Tensor to plot. 
+        name: string
+            The key by which to search the tensor dictionaries.
+        idx_list: list of int_
+            The indices of the list of tensors to plot. 
 
         """
         tensor_lst = self.tensor_dict.get(name)
         for i in idx_lst:
             if i < len(tensor_lst):
                 tensor = tensor_lst[i]
-                fig = plt.figure(figsize = (15,105))
-                plt.imshow(tensor)
+                #fig = plt.figure(figsize = (15,105))
+                plt.imshow(tensor,aspect='auto',cmap='binary',interpolation='none')
                 plt.show()

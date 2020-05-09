@@ -1,13 +1,10 @@
 #!/usr/bin/env python
-# coding: utf-8
+# -*- coding: utf-8 -*-
 
-
-
-# Date:2018.07.21
-# Author: Runyu Zhang
-
-
-
+'''
+    Defines class and functions for Nonnegative Least-Squares layers in hierarchical NMF
+    model.
+'''
 
 import numpy as np
 import torch
@@ -18,82 +15,61 @@ from scipy.optimize import nnls
 
 from fnnls import fnnls
 
-
-
-
 class LsqNonnegF(torch.autograd.Function):
     """
-    Define the forward and backward process for q(X,A) = argmin_{S >= 0} ||X - AS||_F^2
+    Define the forward and backward process for q(X,A) = argmin_{S >= 0} ||X - AS||_F^2.
 
     """
     @staticmethod
     def forward(ctx, input, A):
         """
-
         Runs the forward pass of the nonnegative least squares task q(X,A).
 
         This solves the problem:
-        min_{S >= 0} ||X - A*S||_F^2
-        output[:,i] = argmin_{s >= 0} ||X[:,i] - A*s||_F^2 
+        min_{S >= 0} ||X - A*S||_F^2.
+        Output[:,i] = argmin_{s >= 0} ||X[:,i] - A*s||_F^2.
 
         Parameters
         ----------
         ctx: context object
-            Stashes information for the backwards pass
-
-        input: Pytorch Tensor
-            The input to the Neural NMF network, X. Input should
-            have size (m,n).
-
-        A: Pytorch Tensor
-            The A matrix for the current layer of the Neural NMF
-            network, stored in the LsqNonneg class.
+            Stashes information for the backwards pass.
+        input: PyTorch tensor
+            The input to the Neural NMF network, X. Input should have size (m,n).
+        A: PyTorch tensor
+            The A matrix for the current layer of the Neural NMF network, stored in the LsqNonneg class.
 
         Returns
         -------
-        output: Pytorch Tensor
-            The output of the nonnegative least squares task q(X,A)
-
+        output: PyTorch tensor
+            The output of the nonnegative least squares task q(X,A).
 
         """
 
         [output, res] = lsqnonneg_tensor_version(A.data, input.data)
-        # normalize the output
-        #output_sum = torch.sum(output, dim =1) + 1e-10
-        #output = output.t()/output_sum
-        #output = output.t()
-        #A.data = A.data.t()*output_sum
-        #A.data = A.data.t()
         ctx.save_for_backward(input, A)
-        #output = output.t()
         ctx.intermediate = output
         return output.t().t()
     
     @staticmethod
-    @once_differentiable # don't know if this is needed, it seems like if without this line then in backprop all the operations should be differentiable
+    @once_differentiable #without this line then in backprop all the operations should be differentiable
     def backward(ctx, grad_output):
         """
-        Runs the backwards pass of the nonnegative least squares task q(X,A).
-        Computes the gradients of q(X,A) with respect to X and A
+        Runs the backwards pass of the nonnegative least squares task q(X,A). Computes the gradients of 
+        q(X,A) with respect to X and A
 
         Parameters
         ----------
         ctx: context object
-            Contains information stashed by the forwards pass
-
-
-        grad_output: Pytorch Tensor
+            Contains information stashed by the forward pass.
+        grad_output: PyTorch tensor
             The gradient of S = q(X,A) passed on from the last layer
 
         Returns
         -------
-        grad_input: Pytorch Tensor
-            The gradient of the nonnegative least squares task q(X,A)
-            with respect to X
-
-        grad_A: Pytorch Tensor
-            The gradient of the nonnegative least squares task q(X,A)
-            with respect to A
+        grad_input: PyTorch tensor
+            The gradient of the nonnegative least squares task q(X,A) with respect to X.
+        grad_A: PyTorch tensor
+            The gradient of the nonnegative least squares task q(X,A) with respect to A.
 
         """
 
@@ -102,10 +78,8 @@ class LsqNonnegF(torch.autograd.Function):
         output = ctx.intermediate
         if ctx.needs_input_grad[0]:
             grad_input = calc_grad_X(grad_output, A.data, output)# calculate gradient with respect to X
-            #grad_input = grad_input.t()
         if ctx.needs_input_grad[1]:
             grad_A = calc_grad_A(grad_output, A.data, output, input.data) # calculate gradient with respect to A
-            #grad_A = grad_A.t()
         return grad_input, grad_A
 
 
@@ -113,23 +87,22 @@ class LsqNonnegF(torch.autograd.Function):
 
 def lsqnonneg_tensor_version(A, X):
     """
-    Calculates the nonnegative least squares solution q(X,A)
+    Calculates the nonnegative least squares solution q(X,A).
 
     Computes the following for each column of the output:
-    output[:,i] = argmin_{s >= 0} ||X[:,i] - A*s||_F^2 
+    output[:,i] = argmin_{s >= 0} ||X[:,i] - A*s||_F^2. 
 
     Parameters
     ---------
-    A: Pytorch Tensor
-        The A matrix used to compute q(X,A)
-
-    X: Pytorch Tensor
-        The X matrix used to compute q(X,A)
+    A: PyTorch tensor
+        The A matrix used to compute q(X,A).
+    X: PyTorch tensor
+        The X matrix used to compute q(X,A).
 
     Returns
     -------
-    S: Pytorch Tensor
-        The S matrix, S = q(X,A)
+    S: PyTorch tensor
+        The S matrix, S = q(X,A).
 
     """
     A = A.numpy() # Transforming to numpy array size(m,k)
@@ -154,27 +127,23 @@ def lsqnonneg_tensor_version(A, X):
     S = torch.from_numpy(S).double() # Transforming to torch Tensor
     return S, res_total
 
-
-
 def calc_grad_X(grad_S, A, S):
     """
-    Calculates the gradient of q(X,A) with respect to X
+    Calculates the gradient of q(X,A) with respect to X.
 
     Parameters
     ---------
-    grad_S: Pytorch Tensor
-        The gradient of S = q(X,A) passed on from the last layer
-
-    A: Pytorch Tensor
-        The A matrix used to compute q(X,A)
-
-    S: Pytorch Tensor
-        The output S = q(X,A)
+    grad_S: PyTorch tensor
+        The gradient of S = q(X,A) passed on from the last layer.
+    A: PyTorch tensor
+        The A matrix used to compute q(X,A).
+    S: PyTorch tensor
+        The output S = q(X,A).
 
     Returns
     -------
-    grad_X: Pytorch Tensor
-        The gradient of q(X,A) with respsect to X
+    grad_X: PyTorch tensor
+        The gradient of q(X,A) with respsect to X.
 
     """
     A_np = A.numpy()
@@ -193,31 +162,25 @@ def calc_grad_X(grad_S, A, S):
     grad_X = torch.from_numpy(grad_X).double()
     return grad_X
 
-
-
-
 def calc_grad_A(grad_S, A, S, X):
     """
-    Calculates the gradient of q(X,A) with respect to X
+    Calculates the gradient of q(X,A) with respect to A.
 
     Parameters
     ---------
-    grad_S: Pytorch Tensor
-        The gradient of S = q(X,A) passed on from the last layer
-
-    A: Pytorch Tensor
-        The A matrix used to compute q(X,A)
-
-    S: Pytorch Tensor
-        The output S = q(X,A)
-
-    X: Pytorch Tensor
-        The X matrix used to compute q(X,A)
+    grad_S: PyTorch tensor
+        The gradient of S = q(X,A) passed on from the last layer.
+    A: PyTorch tensor
+        The A matrix used to compute q(X,A).
+    S: PyTorch tensor
+        The output S = q(X,A).
+    X: PyTorch tensor
+        The X matrix used to compute q(X,A).
 
     Returns
     -------
-    grad_A: Pytorch Tensor
-        The gradient of q(X,A) with respsect to A
+    grad_A: PyTorch tensor
+        The gradient of q(X,A) with respsect to A.
 
     """
 
@@ -243,79 +206,49 @@ def calc_grad_A(grad_S, A, S, X):
     return grad_A
 
 
-
-
 class LsqNonneg(nn.Module):
     """
-    Defining a submodule 'LsqNonneg' of the nn.Module
-    with network parameter: self.A which correspond to the A matrix in the NMF decomposition
+    Defining a submodule 'LsqNonneg' of the nn.Module with network parameter.
+
+    Parameters
+    ----------
+    m: int_
+        The first dimension of A, size (m,k).
+    k: int_
+        The second dimension of A, size (m,k).
+    initial_A: PyTorch tensor, optional
+        The initialization of the A matrix (default None). If None, then A is generated randomly.
+
+    Methods
+    ----------
+    forward(input)
+        Computes the forward propagation of the nonnegative least-squares layer.
+
     """
     def __init__(self, m, k, initial_A = None):
-        """
-        Initializes the LsqNonneg submodule
-
-        Parameters
-        ----------
-        m: Integer
-            The first domension of A, size (m,k)
-
-        k: Integer
-            The second domension of A, size (m,k)
-
-        initial_A: Pytorch Tensor
-            The initialization of the A matrix. If None,
-            then A is generated randomly
-
-        """
         super(LsqNonneg, self).__init__()
         self.m = m;
         self.k = k;
         self.A = nn.Parameter(torch.DoubleTensor(m,k)) #switched
         if initial_A is None:
-            self.A.data = torch.abs(torch.randn(m,k,dtype = torch.double)) # initialize the network parameter #Switched
+            self.A.data = torch.abs(torch.rand(m,k,dtype = torch.double)) # initialize the network parameter #Switched
         else:
             self.A.data = initial_A
         
     def forward(self, input):
         """
-        The forward pass of the LsqNonneg submodule
+        The forward pass of the LsqNonneg submodule.
 
         Parameters
         ----------
-        input: Pytorch Tensor
-            The input the the NMF layer, X
+        input: PyTorch tensor
+            The input the the NMF layer, X.
 
         Returns
         -------
-        S: Pytorch Tensor
-            The output of the forward pass of the LsqNonnegF forward pass,
-            which calculaetes S = q(X,A)
+        S: PyTorch tensor
+            The output of the LsqNonnegF forward pass, S = q(X,A).
         """
 
         return LsqNonnegF.apply(input, self.A)
-
-
-
-
-# from torch.autograd import gradcheck
-
-
-
-
-# n = 10
-# m = 10
-# k = 5
-# X_tensor = torch.randn(n,m, dtype = torch.double)
-# A_tensor = torch.randn(k,m, dtype = torch.double)
-
-
-
-
-# X = Variable(X_tensor, requires_grad=True)
-# A = Variable(A_tensor, requires_grad = True)
-# X = torch.abs(X)
-# A = torch.abs(A)
-# input = (X, A)
-# test = gradcheck(LsqNonnegF().apply, input, eps = 1e-6, atol = 0, rtol = 1e-9)
-# print(test)
 
