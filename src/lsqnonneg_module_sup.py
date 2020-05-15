@@ -134,7 +134,6 @@ def lsqnonneg_tensor_version(A, X, last_S = None):
         The S matrix, S = q(X,A)
 
     """
-    start = time()
 
     A = A.numpy() # Transforming to numpy array size(m,k)
     X = X.numpy() # size(m,n)
@@ -148,6 +147,7 @@ def lsqnonneg_tensor_version(A, X, last_S = None):
 
         if last_S != None:
             P_init = {j for j in range(k) if last_S[j,i] > 0}
+            #P_init = set()
             #if i == 0:
             #   print(P_init)
         else:
@@ -165,8 +165,6 @@ def lsqnonneg_tensor_version(A, X, last_S = None):
         S[:,i] = s
     S = torch.from_numpy(S).double() # Transforming to torch Tensor
 
-    end = time()
-    print(end-start)
     return S, res_total
 
 

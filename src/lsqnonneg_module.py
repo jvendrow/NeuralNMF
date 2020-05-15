@@ -14,6 +14,7 @@ from torch.autograd.function import once_differentiable
 from scipy.optimize import nnls
 
 from fnnls import fnnls
+from fnnls import RK
 
 class LsqNonnegF(torch.autograd.Function):
     """
@@ -116,6 +117,7 @@ def lsqnonneg_tensor_version(A, X):
         x = X[:,i]
         try:
             #[s, res] = nnls(A, x)
+            fnnls_rk = lambda A, b: fnnls(A, b, lstsq=lambda A, b: RK(A,b,30))
             [s, res] = fnnls(A, x)
             res_total += res
         except:

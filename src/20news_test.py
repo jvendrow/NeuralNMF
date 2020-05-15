@@ -49,7 +49,7 @@ net = Neural_NMF([m, k1])
 loss_func = Energy_Loss_Func()
 
 start = time()
-history_unsupervised = train_unsupervised(net, X, loss_func, epoch = 20, lr = 2e13, weight_decay=0.999, full_history=True, verbose=True)
+history_unsupervised = train_unsupervised(net, X, loss_func, epoch = 10, lr = 2e13, weight_decay=0.999, full_history=True, verbose=True)
 end = time()
 
 print("Training time: {}".format(end-start))

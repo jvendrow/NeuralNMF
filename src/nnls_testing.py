@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 
 from scipy.optimize import nnls
 from fnnls import fnnls
-
+from f_new import f_new 
+from f_new2 import f_new2
 from time import time
 
 
@@ -62,9 +63,9 @@ class nnls_testing():
                     #define matrix A and vector x
                     #------------------------------
 
-                    A = np.abs(np.random.rand(d*1000, d)) * 100
+                    A = np.abs(np.random.rand(d*10, d)) * 100
 
-                    x = np.abs(np.random.rand(d*1000)) * 100
+                    x = np.abs(np.random.rand(d*10)) * 100
 
                     #Measure the speed of running the optimizer
                     start = time()
@@ -136,9 +137,9 @@ testing = nnls_testing()
 
 repetitions = 10
 #dimensions = np.asarray([16, 25,32, 64])
-dimensions = np.arange(10, 40, 10)
-optimizers = [nnls, fnnls]
-names = ["scipy.optimize.nnls", "fnnls"]
+dimensions = np.arange(10, 350, 40)
+optimizers = [nnls, fnnls, f_new, f_new2]
+names = ["scipy.optimize.nnls", "fnnls", "f_new", "f_new2"]
 
 testing.test(repetitions, dimensions, optimizers, names, verbose=True)
 

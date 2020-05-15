@@ -54,7 +54,7 @@ loss_func = Recon_Loss_Func()
 X_input = X*1000
 
 start = time()
-history_unsupervised = train_unsupervised(net, X_input, loss_func, epoch = 200, lr = 1000, full_history=True, verbose=True)
+history_unsupervised = train_unsupervised(net, X_input, loss_func, epoch = 100, lr = 1000, full_history=True, verbose=True)
 end = time()
 
 print("Training time: {}".format(end-start))
@@ -84,7 +84,7 @@ classification layer will do thirty. See more detail in the function 'train_supe
 # supervised case
 net = Neural_NMF([m, 9], 9)
 net.linear.weight.data = 1e-3*torch.randn(9,9,dtype = torch.double)
-loss_func = Energy_Loss_Func(lambd = 100000,classification_type = 'L2')
+loss_func = Energy_Loss_Func(lambd = 100000)
 X_input = X*1000
 history_supervised = train_supervised(net, X_input, loss_func, Y, epoch = 30, lr_nmf = 5000, lr_classification = 0.01, weight_decay = 1)
 

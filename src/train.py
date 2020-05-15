@@ -20,8 +20,7 @@ from neural_nmf import Neural_NMF, Recon_Loss_Func, Energy_Loss_Func, Fro_Norm
 from writer import Writer
 import torch
 import numpy as np
-#from lsqnonneg_module_sup import LsqNonneg
-from lsqnonneg_module_sup import LsqNonneg
+from lsqnonneg_module import LsqNonneg
 import torch.nn as nn
 from matplotlib import pyplot as plt
 from torch.autograd import Variable
@@ -265,7 +264,7 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
             loss = loss_func(net, X, S_lst)
         loss.backward()
         for l in range(net.depth - 1):
-            history.add_scalar('loss',loss.data)
+            history.add_scalar('loss_nmf',loss.data)
             A = net.lsqnonneglst[l].A
             # record history
             if full_history:
@@ -290,7 +289,7 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
                 loss = loss_func(net, X, S_lst,pred,label,L)
             loss.backward()
             S_lst[0].detach()
-            history.add_scalar('loss',loss.data)
+            history.add_scalar('loss_classification',loss.data)
             weight = net.linear.weight
             weight.data = weight.data.sub_(lr_classification*weight.grad.data)
             weight.data = weight.data.clamp(min = 0) #added by Jamie (shouldn't we make sure B >= 0?)

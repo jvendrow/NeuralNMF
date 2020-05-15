@@ -4,10 +4,8 @@
 '''
     Class and functions for initializing (semi-supervised) hierarchical NMF model and forward-propagation
     of Neural NMF.
-
     The class consists of a sequence of factor matrices with dimensions defined by the input depth info 
     and an optional classification layer defined by the optional input number of classes.
-
     Examples
     --------
     >>> net = Neural_NMF([m, 9], none)
@@ -41,21 +39,17 @@ class Neural_NMF(nn.Module):
             S_L is of size depth_info[L] x n.
         If c is not None, it also initializes a classification layer defined by B*S_L where:
             B is of size c x depth_info[L].
-
     ...
-
     Parameters
     ----------
     depth_info: list
         The list [m, k1, k2,...k_L] contains the dimension information for all factor matrices.
     c: int_, optional
         Number of classes (default is None).
-
     Methods
     ----------
     forward(X)
         Forward propagate the Neural NMF network.
-
     """
     def __init__(self, depth_info, c = None):
         super(Neural_NMF, self).__init__()
@@ -72,20 +66,17 @@ class Neural_NMF(nn.Module):
     def forward(self, X):
         """
         Runs the forward pass of the Neural NMF network.
-
         Parameters
         ----------
         X: PyTorch tensor
             The m x n input to the Neural NMF network. The first dimension, m, should match the first entry 
             of depth_info.
-
         Returns
         -------
         S_lst: list
             All S matrices ([S_0, S_1, ..., S_L]) calculated by the forward pass.
         pred: PyTorch tensor, optional
             The c x n output of the linear classification layer.
-
         """
         S_lst = []
         for i in range(self.depth-1):
@@ -105,9 +96,7 @@ class Neural_NMF(nn.Module):
 class Energy_Loss_Func(nn.Module):
     """
     Defining the energy loss function as in the Neural NMF Paper. #Jamie: can we add math description?
-
     ...
-
     Parameters
     ----------
     lambd: float, optional
@@ -119,7 +108,6 @@ class Energy_Loss_Func(nn.Module):
     ----------
     forward(net,X,S_lst)
         Forward propagates and computes energy loss value.
-
     """
     def __init__(self,lambd = 0, classification_type = 'CrossEntropy'):
         super(Energy_Loss_Func, self).__init__()
@@ -134,7 +122,6 @@ class Energy_Loss_Func(nn.Module):
     def forward(self, net, X, S_lst, pred = None, label = None, L = None):
         """
         Runs the forward pass of the energy loss function.
-
         Parameters
         ----------
         net: Pytorch module Neural NMF object
@@ -155,14 +142,12 @@ class Energy_Loss_Func(nn.Module):
             The label indicator matrix for semi-supervised model that indicates if labels are known 
             for n data points, of size c x n with columns of all ones or all zeros to indicate if label
             for that data point is known (default is None).
-
         Returns
         -------
         reconstructionloss: Pytorch tensor
             The total energy loss from X, the S matrices, and the A matrices, stored in a 1x1 Pytorch 
             tensor to preserve information for backpropagation.
         """
-
         total_reconstructionloss = self.criterion1(X, S_lst[0], net.lsqnonneglst[0].A)
         depth = net.depth
         for i in range(1,depth-1):
@@ -182,9 +167,7 @@ class Energy_Loss_Func(nn.Module):
 class Recon_Loss_Func(nn.Module):
     """
     Defining the reconstruction loss function as in the paper Deep NMF. #Jamie: can we add a math description?
-
     ...
-
     Parameters
     ----------
     lambd: float, optional
@@ -196,7 +179,6 @@ class Recon_Loss_Func(nn.Module):
     ----------
     forward(net,X,S_lst)
         Forward propagates and computes energy loss value.
-
     """
     def __init__(self, lambd = 0, classification_type = 'CrossEntropy'):
         super(Recon_Loss_Func, self).__init__()
@@ -211,7 +193,6 @@ class Recon_Loss_Func(nn.Module):
     def forward(self, net, X, S_lst, pred = None, label = None, L = None):
         """
         Runs the forward pass of the energy loss function.
-
         Parameters
         ----------
         net: Pytorch module Neural NMF object
@@ -232,7 +213,6 @@ class Recon_Loss_Func(nn.Module):
             The label indicator matrix for semi-supervised model that indicates if labels are known 
             for n data points, of size c x n with columns of all ones or all zeros to indicate if label
             for that data point is known (default is None).
-
         Returns
         -------
         reconstructionloss: Pytorch tensor
@@ -264,12 +244,10 @@ class Fro_Norm(nn.Module):
     """
     Calculate the Frobenius norm between two matrices of the same size. This function actually returns 
     the entrywise average of the square of the Frobenius norm. 
-
     Examples
     --------
     >>> criterion = Fro_Norm()
     >>> loss = criterion(X1,X2)
-
     """
     def __init__(self):
         super(Fro_Norm, self).__init__()
@@ -277,20 +255,17 @@ class Fro_Norm(nn.Module):
     def forward(self,X1, X2):
         """
         Runs the forward pass of the Frobenius norm module
-
         Parameters
         ----------
         X1: Pytorch tensor
             The first input to the Frobenius norm loss function
         X2: Pytorch tensor
             The second input to the Frobenius norm loss function
-
         Returns
         -------
         loss: Pytorch tensor
             The Frobenius norm of X1 and X2, stored in a 1x1 Pytorch tensor to preserve information for 
             backpropagation.
-
         """
         len1 = torch.numel(X1.data)
         len2 = torch.numel(X2.data)
@@ -303,12 +278,10 @@ class Fro_Norm(nn.Module):
 class ReconstructionLoss(nn.Module):
     """
     Calculates the entrywise average of the square of Frobenius norm ||X - AS||_F^2.
-
     Examples
     --------
     >>> criterion = ReconstructionLoss()
     >>> loss = criterion(X, S, A)
-
     """
     def __init__(self):
         super(ReconstructionLoss, self).__init__()
@@ -316,7 +289,6 @@ class ReconstructionLoss(nn.Module):
     def forward(self, X, S, A):
         """
         Runs the forward pass of the ReconstructionLoss module
-
         Parameters
         ----------
         X: Pytorch tensor
@@ -325,13 +297,11 @@ class ReconstructionLoss(nn.Module):
             The first factor of the second input to the loss function (m x k matrix).
         S: Pytorch tensor
             The second factor of the second input to the loss function (k x n matrix).
-
         Returns
         -------
         reconstructionloss: Pytorch tensor
             The loss of X and A*S, stored in a 1x1 Pytorch tensor to preserve information for 
             backpropagation.
-
         """
         X_approx = torch.mm(A,S)
         reconstructionloss = self.criterion(X_approx, X)
@@ -341,7 +311,6 @@ class ReconstructionLoss(nn.Module):
 class ClassificationLossL2(nn.Module):
     """
     Calculates the classification loss  ||L.*(Y - Y_pred)||_F^2.
-
     Examples
     ---------
     >>> criterion = ClassificationLossL2()
@@ -354,7 +323,6 @@ class ClassificationLossL2(nn.Module):
     def forward(self, Y, Y_pred, L = None):
         """
         Runs the forward pass of the ClassificationLossL2 module.
-
         Parameters
         ----------
         Y: Pytorch tensor
@@ -364,13 +332,11 @@ class ClassificationLossL2(nn.Module):
         L: Pytorch tensor
             The label indicator matrix (where all-zero columns indicate no label information and 
             all-one columns indicate label information for corresponding data points) (c x n).
-
         Returns
         -------
         classificationloss: Pytorch tensor
             The loss of Y and Y_pred, stored in a 1x1 Pytorch tensor to preserve information for 
             backpropagation.
-
         """
         if L is None:
             classificationloss = self.criterion(Y_pred, Y)
@@ -382,7 +348,6 @@ class ClassificationLossL2(nn.Module):
 class ClassificationLossCrossEntropy(nn.Module):
     """
     Calculates the classification cross-entropy.
-
     Examples
     ---------
     >>> criterion = ClassificationLossCrossEntropy()
@@ -395,7 +360,6 @@ class ClassificationLossCrossEntropy(nn.Module):
     def forward(self, Y_pred, label, L = None):
         """
         Runs the forward pass of the ClassificationLossCrossEntropy module.
-
         Parameters
         ----------
         Y_pred: Pytorch tensor
@@ -405,13 +369,11 @@ class ClassificationLossCrossEntropy(nn.Module):
         L: Pytorch tensor
             The label indicator matrix (where all-zero columns indicate no label information and 
             all-one columns indicate label information for corresponding data points) (c x n).
-
         Returns
         -------
         classificationloss: Pytorch tensor
             The loss of Y_pred and label, stored in a 1x1 Pytorch tensor to preserve information for 
             backpropagation.
-
         """
         if L is None:
             classificationloss = self.criterion(torch.transpose(Y_pred,0,1), label)
@@ -427,12 +389,10 @@ class ClassificationLossCrossEntropy(nn.Module):
 class L21_Norm(nn.Module):
     """
     Calculate the L21 norm of a matrix.
-
     Examples
     --------
     >>> criterion = L21_Norm()
     >>> loss = criterion(X)
-
     """
     def __init__(self):
         super(L21_Norm, self).__init__()
@@ -440,22 +400,18 @@ class L21_Norm(nn.Module):
     def forward(self, S):
         """
         Runs the forward pass of the L21 norm module.
-
         Parameters
         ----------
         S: Pytorch tensor
             The input to the L21_Norm module.
-
         Returns
         -------
         total: Pytorch tensor
             The L21 norm of S, stored in a 1x1 Pytorch tensor to preserve information for 
             backpropagation.
-
         """
         total = 0
         n = S.shape[1]
         for i in range(n):
             total += torch.norm(S[:,i])
         return total
-
