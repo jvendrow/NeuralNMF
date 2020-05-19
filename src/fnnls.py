@@ -1,5 +1,5 @@
 import numpy as np
-import random
+from time import time
 
 def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.linalg.lstsq(A,b,rcond=None)[0]):
     """
@@ -53,13 +53,18 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
         raise ValueError("Expected values between 0 and Z.shape[1], but P_initial has max value {}".format(np.max(P_initial)))
     if np.any(P_initial < 0):
         raise ValueError("Expected values between 0 and Z.shape[1], but P_initial has min value {}".format(np.min(P_initial)))
-
+    if P_initial.dtype != np.dtype('int64') and P_initial.dtype != np.dtype('int32') :
+        raise TypeError("Expected type int64 or int32, but P_initial is type {}".format(P_initial.dtype))
     if x.shape[0] != m:
         raise ValueError("Incompatable dimensions. The first dimension of Z should match the length of x, but Z is of shape {} and x is of shape {}".format(Z.shape, x.shape))
 
     #Calculating ZTZ and ZTx in advance to improve the efficiency of calculations
+    start = time()
     ZTZ = Z.T.dot(Z)
     ZTx = Z.T.dot(x)
+    end = time()
+    #print("Mat mul: {}".format(end-start))
+    start = time()
 
     #Declaring constants for tolerance and max repetitions
     epsilon = 2.2204e-16
@@ -84,9 +89,16 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
     #Count of amount of consecutive times set P has remained unchanged
     no_update = 0
 
-    #B1
-    while (not np.all(P))  and np.max(w[~P]) > tolerance:
 
+    #B1
+
+    if P_initial.shape[0] != 0:
+
+        s[P] = lstsq((ZTZ)[P][:,P], (ZTx)[P])
+        d = s.clip(min=0)
+
+    while (not np.all(P))  and np.max(w[~P]) > tolerance:
+        
         current_P = P.copy() #make copy of passive set to check for change at end of loop
 
         #B2 + B3 
@@ -96,13 +108,12 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
         s[P] = lstsq((ZTZ)[P][:,P], (ZTx)[P])
 
         #C1
-        while (not np.any(P)) and np.min(s[P]) <= tolerance:
+        while np.any(P) and np.min(s[P]) <= tolerance:
 
-            s, d, P = fix_constraint(ZTZ, ZTx, s, d, P, lstsq)
+            s, d, P = fix_constraint(ZTZ, ZTx, s, d, P, tolerance, lstsq)
 
         #B5
         d = s.copy() 
-
         #B6
         w = ZTx - (ZTZ) @ d
 
@@ -117,11 +128,14 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
             break
 
     res = np.linalg.norm(x - Z@d) #Calculate residual loss ||x - Zd||
+
+    end = time()
+    #print("other: {}".format(end-start))
     
     return [d, res]
 
 
-def fix_constraint(ZTZ, ZTx, s, d, P, lstsq = lambda A, b: np.linalg.lstsq(A,b,rcond=None)[0]):
+def fix_constraint(ZTZ, ZTx, s, d, P, tolerance, lstsq = lambda A, b: np.linalg.lstsq(A,b,rcond=None)[0]):
     """
     The inner loop of the Fast Non-megative Least Squares Algorithm described
     in the paper "A fast non-negativity-constrained least squares algorithm"
@@ -153,6 +167,10 @@ def fix_constraint(ZTZ, ZTx, s, d, P, lstsq = lambda A, b: np.linalg.lstsq(A,b,r
         The current passive set, which comtains the indices
         that are not fixed at the value zero. 
 
+    tolerance: float
+        A tolerance, below which values are considered to be
+        0, allowing for more reasonable convergence.
+
     lstsq: function
         By default, numpy.linalg.lstsq with rcond=None.
         Least squares function to use when calculating the
@@ -170,6 +188,8 @@ def fix_constraint(ZTZ, ZTx, s, d, P, lstsq = lambda A, b: np.linalg.lstsq(A,b,r
         The updated passive set
         """ 
     #C2
+    if(np.array_equal(d,s)):
+        print("equal")
     q = P * (s <= tolerance)
     alpha = np.min(d[q] / (d[q] - s[q]))
 
@@ -187,7 +207,7 @@ def fix_constraint(ZTZ, ZTx, s, d, P, lstsq = lambda A, b: np.linalg.lstsq(A,b,r
 
     return s, d, P
 
-def RK(A,b,k=100):
+def RK(A,b,k=100, random_state=None):
     """
     Function that runs k iterations of randomized Kaczmarz iterations (with uniform sampling).
 
@@ -203,23 +223,14 @@ def RK(A,b,k=100):
     x : NumPy array
         The approximate solution 
     """ 
+    
+    if random_state != None:
+        np.random.seed(random_state)
 
     m, n = np.shape(A)
     x = np.zeros([n])
 
     for i in range(k):
-        ind = random.choice(range(n))
+        ind = np.random.choice(range(n))
         x = x + np.transpose(A[ind,:])*(b[ind] - A[ind,:] @ x)/(np.linalg.norm(A[ind,:])**2)
     return x
-
-
-    """
-    m, n = np.shape(A)
-    x = np.zeros([n,1])
-
-    for i in range(k):
-        ind = random.choice(range(n))
-        x = x + np.transpose(A[[ind],:])*(b[[ind],0] - A[[ind],:] @ x)/(np.linalg.norm(A[[ind],:])**2)
-
-    return x
-    """

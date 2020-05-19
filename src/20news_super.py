@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
-
-# Date: 2018.07.22
-# Author: Runyu Zhang
-
-
-
 '''
 This demo demonstrate how to train a one layer, unsupervised NMF and one layer, supervised NMF, and how to analyze and visualize the 
 result.
@@ -32,7 +25,7 @@ from writer import Writer
 
 # data loading session
 from news_group_loading import get_data
-
+import scipy.io as sio
 from time import time
 
 # set the network parameters
@@ -43,11 +36,11 @@ k1 = 10
 k2 = 6
 
 #supervised case,one layer
-net = Neural_NMF([m, k1, k2], 6)
-loss_func = Energy_Loss_Func(lambd=1)
+net = Neural_NMF([m, k1], 10)
+loss_func = Energy_Loss_Func(lambd=1e-2)
 
 start = time()
-history_supervised = train_supervised(net, X, Y_super, loss_func=loss_func, epoch = 150, lr_nmf = 1e13, lr_classification= 3e14, weight_decay=0.99, decay_epoch=10, full_history=True, verbose=True, verbose_epoch=10)
+history_supervised = train_supervised(net, X, Y_sub, loss_func=loss_func, epoch = 5, lr_nmf = 1e13, lr_classification= 6e9, weight_decay=0.99, decay_epoch=10, full_history=True, verbose=True, verbose_epoch=1, class_iters=1)
 end = time()
 
 print("Training time: {}".format(end-start))
@@ -55,9 +48,9 @@ print("Training time: {}".format(end-start))
 # by calling history_unsupervised.get('variable_name'), you can get the variables that you recorded in the writer
 # getting these results might be helpful for debugging and choosing hyperparameters
 A1_lst = history_supervised.get('A1')
-S1_lst = history_supervised.get('S2')
+S1_lst = history_supervised.get('S1')
 weight_lst = history_supervised.get('weight')
-
+pred = history_supervised.get('pred')[-1].detach().numpy()
 A1 = A1_lst[-1]
 S1 = S1_lst[-1]
 B = weight_lst[-1]
@@ -73,12 +66,30 @@ for i in range(A1.shape[1]):
     for j in top:
         print(vocab[j])
 """
+#data = sio.loadmat('../data/20News_subsampled.mat')
+#Y_orig = data.get("Ysuper")
+
+print(S1.shape)
 approx = torch.mm(B, S1).numpy()
+
+S1_np = S1.numpy()
+inv_S1 = np.linalg.pinv(S1_np)
+
 Y_pred = np.argmax(approx, axis=0)
-Y = Y_super.numpy()
+Y = Y_sub.numpy()
+
+#approx2 = S1_np @ (inv_S1 @ Y_orig)
+#Y_pred2 = np.argmax(approx2, axis=0)
+Y_pred3 = np.argmax(pred, axis=0)
+#print(type(Y_pred2))
 print(Y)
 print(Y_pred)
+#print(Y_pred2)
+print(Y_pred3)
 print("Accuracy: {}/{}".format(Y[Y_pred==Y].shape[0], Y.shape[0]))
+#print("Accuracy2: {}/{}".format(Y[Y_pred2==Y].shape[0], Y.shape[0]))
+print("Accuracy3: {}/{}".format(Y[Y_pred3==Y].shape[0], Y.shape[0]))
+
 
 
 
@@ -94,6 +105,6 @@ history_supervised.plot_scalar('loss_nmf')
 history_supervised.plot_scalar('loss_classification')
 # plot the heatmap for S1
 history_supervised.plot_tensor('S1', [-1])
-history_supervised.plot_tensor('A1', [-1])
-#history_supervised.plot_tensor('S2', [-1])
+#history_supervised.plot_tensor('A1', [-1])
+history_supervised.plot_tensor('S2', [-1])
 #history_supervised.plot_tensor('A2', [-1])

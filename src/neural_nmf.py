@@ -78,6 +78,13 @@ class Neural_NMF(nn.Module):
         pred: PyTorch tensor, optional
             The c x n output of the linear classification layer.
         """
+
+        if len(X.shape) != 2:
+            raise ValueError("Expected a two-dimensional Tensor, but X is of shape {}".format(X.shape))
+
+        if X.shape[0] != self.depth_info[0]:
+            raise ValueError("Dimension 0 of X should match entry 0 of depth_info, but values were {} and {}".format(X.shape[0], self.depth_info[0]))
+
         S_lst = []
         for i in range(self.depth-1):
             X = self.lsqnonneglst[i](X) #Calculates the least squares objective S = min S>=0 ||X - AS||

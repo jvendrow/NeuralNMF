@@ -16,7 +16,7 @@ def get_data():
     Y_super = data.get("Ysuper")
     vocab = data.get("vocab")
 
-    X = Variable(torch.from_numpy(X.toarray()).double())
+    X = Variable(torch.from_numpy(X.toarray()))
     Y_sub = torch.from_numpy(np.argmax(Y_sub, axis=0))
     Y_super = torch.from_numpy(np.argmax(Y_super, axis=0))
 

@@ -79,6 +79,9 @@ def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, 
         A gradients from after last epoch.
 
     """
+    if len(X.shape) != 2:
+            raise ValueError("Expected a two-dimensional Tensor, but X is of shape {}".format(X.shape))
+
     if supervised == False:
 
         history = train_unsupervised(net, X, loss_func=loss_func, epoch = epoch, lr = lr, weight_decay = weight_decay, decay_epoch=decay_epoch, verbose=verbose, verbose_epoch=verbose_epoch, full_history = full_history)
@@ -150,8 +153,8 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
     for i in range(epoch):
         net.zero_grad()
         if S_lst != None:
-            S_lst = net(X)
-            #S_lst = net(X, [s.detach() for s in S_lst])
+            #S_lst = net(X)
+            S_lst = net(X, [s.detach() for s in S_lst])
         else:
             S_lst = net(X)
         loss = None
@@ -165,8 +168,8 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
 
             if epoch == 0:
                 for config in configs:
-                    config['v'] = torch.zeros_like(As[j].data)
-                    config['a'] = torch.zeros_like(As[j].data)
+                    config['v'] = torch.zeros_like(As[l].data)
+                    config['a'] = torch.zeros_like(As[l].data)
 
             A = net.lsqnonneglst[l].A
             # record history
@@ -252,6 +255,25 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
 
     A_lst = []
     history = Writer() # creating a Writer object to record the history for the training process
+
+    configs = [{} for i in range(net.depth-1)]
+    config_w = {}
+
+    for config in configs:
+        config['learning_rate'] = lr_nmf
+        config['beta1'] = 0.9
+        config['beta2'] = 0.99
+        config['epsilon'] = 1e-8
+        config['t'] = 0
+
+    config_w['learning_rate'] = lr_classification
+    config_w['beta1'] = 0.9
+    config_w['beta2'] = 0.99
+    config_w['epsilon'] = 1e-8
+    config_w['t'] = 0
+
+
+
     for i in range(epoch):
         
         # doing gradient update for NMF layer
@@ -264,6 +286,7 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
             loss = loss_func(net, X, S_lst)
         loss.backward()
         for l in range(net.depth - 1):
+
             history.add_scalar('loss_nmf',loss.data)
             A = net.lsqnonneglst[l].A
             # record history
@@ -276,12 +299,16 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
                 A_lst.append(A)
             # projection gradient descent
             A.data = A.data.sub_(lr_nmf*A.grad.data)
+            #return history
+            #A.data, configs[l] = adam(A.data, A.grad.data, configs[l])
+            #print(A.grad.data)
             A.data = A.data.clamp(min = 0)
             
         # doing gradient update for classification layer
         for iter_classifier in range(class_iters):
             net.zero_grad()
             S_lst, pred = net(X)
+            history.add_tensor('pred', pred)
             loss = None
             if type(loss_func) == str:
                 loss = loss_functions[loss_func](net, X, S_lst,pred,label,L)
@@ -292,6 +319,8 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
             history.add_scalar('loss_classification',loss.data)
             weight = net.linear.weight
             weight.data = weight.data.sub_(lr_classification*weight.grad.data)
+            #weight.data, config_w = adam(weight.data, weight.grad.data, config_w)
+
             weight.data = weight.data.clamp(min = 0) #added by Jamie (shouldn't we make sure B >= 0?)
             if full_history:
                 history.add_tensor('weight', weight.data.clone())

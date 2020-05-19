@@ -146,16 +146,16 @@ def lsqnonneg_tensor_version(A, X, last_S = None):
         x = X[:,i]
 
         if last_S != None:
-            P_init = {j for j in range(k) if last_S[j,i] > 0}
+            P_initial = np.asarray([j for j in range(k) if last_S[j,i] > 0], dtype=int)
             #P_init = set()
             #if i == 0:
             #   print(P_init)
         else:
-            P_init = set()
+            P_initial = np.zeros(0, dtype=int)
 
         try:
             #[s, res] = nnls(A, x)
-            [s, res] = fnnls(A, x, P_init=P_init)
+            [s, res] = fnnls(A, x, P_initial=P_initial)
             res_total += res
         except:
             print("Dimension mismatch when performing least squares operation")

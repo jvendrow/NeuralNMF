@@ -36,7 +36,7 @@ from news_group_loading import get_data
 from time import time
 
 # set the network parameters
-X, Y_sub, Y_super = get_data()
+X, Y_sub, Y_super, vocab = get_data()
 #X = X.T
 m = X.shape[0]
 k1 = 10
@@ -45,7 +45,7 @@ k2 = 6
 print(X.shape)
 
 # unsupervised case,one layer
-net = Neural_NMF([m, k1])
+net = Neural_NMF([m, k1, k2])
 loss_func = Energy_Loss_Func()
 
 start = time()
