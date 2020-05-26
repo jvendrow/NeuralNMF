@@ -1,7 +1,6 @@
 import numpy as np
-from time import time
 
-def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.linalg.lstsq(A,b,rcond=None)[0]):
+def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, x: np.linalg.inv(A).dot(x)):
     """
     Implementation of the Fast Non-megative Least Squares Algorithm described
     in the paper "A fast non-negativity-constrained least squares algorithm"
@@ -59,16 +58,12 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
         raise ValueError("Incompatable dimensions. The first dimension of Z should match the length of x, but Z is of shape {} and x is of shape {}".format(Z.shape, x.shape))
 
     #Calculating ZTZ and ZTx in advance to improve the efficiency of calculations
-    start = time()
     ZTZ = Z.T.dot(Z)
     ZTx = Z.T.dot(x)
-    end = time()
-    #print("Mat mul: {}".format(end-start))
-    start = time()
 
     #Declaring constants for tolerance and max repetitions
     epsilon = 2.2204e-16
-    tolerance = epsilon * np.linalg.norm(ZTZ, ord=1) * n
+    tolerance = epsilon * n
 
     #number of contsecutive times the set P can remain unchanged loop until we terminate
     max_repetitions = 5
@@ -89,14 +84,13 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
     #Count of amount of consecutive times set P has remained unchanged
     no_update = 0
 
-
-    #B1
-
+    #Extra loop in case a support is set to update s and d
     if P_initial.shape[0] != 0:
 
         s[P] = lstsq((ZTZ)[P][:,P], (ZTx)[P])
         d = s.clip(min=0)
 
+    #B1
     while (not np.all(P))  and np.max(w[~P]) > tolerance:
         
         current_P = P.copy() #make copy of passive set to check for change at end of loop
@@ -117,8 +111,7 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
         #B6
         w = ZTx - (ZTZ) @ d
 
-
-        #check of there has been a check to the passive set
+        #check if there has been a change to the passive set
         if(np.all(current_P == P)): 
             no_update += 1
         else:
@@ -129,13 +122,10 @@ def fnnls(Z, x, P_initial = np.zeros(0, dtype=int), lstsq = lambda A, b: np.lina
 
     res = np.linalg.norm(x - Z@d) #Calculate residual loss ||x - Zd||
 
-    end = time()
-    #print("other: {}".format(end-start))
-    
     return [d, res]
 
 
-def fix_constraint(ZTZ, ZTx, s, d, P, tolerance, lstsq = lambda A, b: np.linalg.lstsq(A,b,rcond=None)[0]):
+def fix_constraint(ZTZ, ZTx, s, d, P, tolerance, lstsq = lambda A, x: np.linalg.inv(A).dot(x)):
     """
     The inner loop of the Fast Non-megative Least Squares Algorithm described
     in the paper "A fast non-negativity-constrained least squares algorithm"
@@ -188,8 +178,6 @@ def fix_constraint(ZTZ, ZTx, s, d, P, tolerance, lstsq = lambda A, b: np.linalg.
         The updated passive set
         """ 
     #C2
-    if(np.array_equal(d,s)):
-        print("equal")
     q = P * (s <= tolerance)
     alpha = np.min(d[q] / (d[q] - s[q]))
 
@@ -217,6 +205,10 @@ def RK(A,b,k=100, random_state=None):
         The measurement matrix (size m x n).
     b : NumPy array
         The measurement vector (size m x 1).
+    k : int_, optional
+        Number of iterations (default is 100).
+    random_state: int, optional
+        Random state for NumPy random sampling 
         
     Returns
     -------
@@ -231,6 +223,42 @@ def RK(A,b,k=100, random_state=None):
     x = np.zeros([n])
 
     for i in range(k):
-        ind = np.random.choice(range(n))
+
+        ind = np.random.choice(range(m))
         x = x + np.transpose(A[ind,:])*(b[ind] - A[ind,:] @ x)/(np.linalg.norm(A[ind,:])**2)
+
+    return x
+
+def RGS(A,b,k=100):
+    """
+    Function that runs k iterations of randomized Gauss-Seidel iterations (with uniform sampling).
+
+    Parameters
+    ----------
+    A : NumPy array
+        The measurement matrix (size m x n).
+    b : NumPy array
+        The measurement vector (size m x 1).
+    k : int_, optional
+        Number of iterations (default is 100).
+    random_state: int, optional
+        Random state for NumPy random sampling
+        
+    Returns
+    -------
+    x : NumPy array
+        The approximate solution 
+    """ 
+
+    if random_state != None:
+        np.random.seed(random_state)
+
+    m, n = np.shape(A)
+    x = np.zeros([n])
+
+    for i in range(k):
+        ind = np.random.choice(range(n))
+        x[ind] = x[ind] + np.transpose(A[:,ind]) @ (b - A @ x)/(np.linalg.norm(A[:,ind])**2)
+
+
     return x
