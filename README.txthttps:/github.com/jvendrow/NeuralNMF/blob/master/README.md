@@ -1,6 +1,6 @@
 
 <p align="center">
-<img width="500" src="https://github.com/jvendrow/NeuralNMF/blob/master/Neural%20NMF%20Logo.png?raw=true" alt="net">
+<img width="500" src="https://github.com/jvendrow/NeuralNMF/blob/master/Neural%20NMF%20Logo.png?raw=true" alt="logo">
 </p>
 
 # Neural NMF
