@@ -30,6 +30,7 @@ you through the process.
 ## Usage
 
 **Quick Start**
+
 To use `Neural NMF`, we first initialize our neural network with the layer sizes, and if applicable, the number of classes. We give the layer sizes as a list, where the first element is the 2nd dimension of the input matrix and each following dimensions is the rank of the approximation at the following layer. 
 ```python
 >>> import torch
