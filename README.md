@@ -8,7 +8,7 @@
 [![PyPI Version](https://img.shields.io/pypi/v/neuralnmf.svg)](https://pypi.org/project/neuralnmf/)
 [![Supported Python Versions](https://img.shields.io/pypi/pyversions/neuralnmf.svg)](https://pypi.org/project/neuralnmf/)
 
-This package is an implementation of `Neural NMF`, a method for detecting latent hierarchical structure in data based on non-negative matrix factorization, as presented in the paper "Neural Nonnegative Matrix Factorization for Hierarchical Multilayer Topic Modeling" by Will, T., Zhang, R., Sadovnik, E., Gao, M., Vendrow, J. Haddock, D. Molitor, and D. Needell (2020).
+This package is an implementation of `Neural NMF`, a method for detecting latent hierarchical structure in data based on non-negative matrix factorization, as presented in the paper "Neural Nonnegative Matrix Factorization for Hierarchical Multilayer Topic Modeling" by T. Will, R. Zhang, E. Sadovnik, M. Gao, J. Vendrow, J. Haddock, D. Molitor, and D. Needell (2020).
 
 Neural NMF solve a hierarchical nonnegative matrix factorization problem by representing the problem with a neural network architecture and applying backpropagation methods. In the unsupervised case, Neural NMF applies backprogation directly to the given loss function (usually either Energy Loss or Reconstruction Loss). In the supervised case, Neural NMF adds a linear layer to the last **S** matrix to estimate the given labels. 
 
@@ -61,7 +61,7 @@ epoch =  6
 ## Citing
 If you use our code in an academic setting, please consider citing our code by citing the following paper: 
 
-Will, T., Zhang, R., Sadovnik, E., Gao, M., Vendrow, J. Haddock, D. Molitor, & D. Needell (2020). Neural nonnegative matrix factorization for hierarchical multilayer topic modeling. 
+Will, T., Zhang, R., Sadovnik, E., Gao, M., Vendrow, J., Haddock, J., Molitor, D., & Needell, D. (2020). Neural nonnegative matrix factorization for hierarchical multilayer topic modeling. 
 
 ## Authors
 * Joshua Vendrow
