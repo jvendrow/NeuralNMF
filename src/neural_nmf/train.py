@@ -12,21 +12,22 @@
      tensor(228.1642, dtype=torch.float64)
     epoch =  20 
      tensor(228.0765, dtype=torch.float64)
-    epoch =  30 
+    epoch =  30
     ...
 '''
 
 from neural_nmf import Neural_NMF, Recon_Loss_Func, Energy_Loss_Func, Fro_Norm
-from writer import Writer
+from neural_nmf import Writer
 import torch
 import numpy as np
-from lsqnonneg_module import LsqNonneg
+from neural_nmf import LsqNonneg
 import torch.nn as nn
 from matplotlib import pyplot as plt
+from tqdm import trange
 from torch.autograd import Variable
 
 
-def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, epoch=10, lr=1e-3, lr_classification=1e-3, weight_decay=1, class_iters=1, decay_epoch=1, verbose=True,verbose_epoch=1, full_history=False):
+def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, epoch=10, lr=1e-3, weight_decay=1, class_iters=1, decay_epoch=1, initialize_support = False, optimizer ="gd", verbose=True,verbose_epoch=1, full_history=False):
 
     """
     Training the Neural_NMF with projected gradient descent.
@@ -54,15 +55,18 @@ def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, 
     epoch: int_, optional
         Number of epochs in training procedure (default 10).
     lr: float_, optional
-        The learning rate for the NMF layers (default 1e-3).
-    lr_classification: float_, optional
-        The learning rate for the classification layer (default 1e-3).
+        The learning rate (default 1e-3).
     weight_decay: float, optional
         The weight decay parameter, doing lr = lr*weight_decay every decay_epoch epochs (default 1).
     class_iters: int_, optional
         Number of gradient steps to take on classification term each epoch (default 1).
     decay_epoch: int_, optional
         Number of epochs to take before decaying the learning rates (default 1).
+    initialize_support: bool, optional
+        Indicator for whether to initialize the estimated support for the least squares solution
+        based on the previous support, when using the fnnls method
+    optimizer: string, optional
+        Optimizer to use to optimize Neural NMF model, either 'gd' for gradient descent of 'adam' for adam optimizer
     verbose: bool, optional
         Indicator for whether to print the loss every verbose_epoch epochs (default True).
     verbose_epoch: int_, optional
@@ -81,19 +85,22 @@ def train(net, X, loss_func="Recon Loss", supervised=False, label=None, L=None, 
     """
     if len(X.shape) != 2:
             raise ValueError("Expected a two-dimensional Tensor, but X is of shape {}".format(X.shape))
+            
+    if optimizer != "gd" and optimizer != "adam":
+        raise ValueError("Expected 'gd' of 'adam' for optimizer, but optimizer parameter is {}".format(optimizer))
 
     if supervised == False:
 
-        history = train_unsupervised(net, X, loss_func=loss_func, epoch = epoch, lr = lr, weight_decay = weight_decay, decay_epoch=decay_epoch, verbose=verbose, verbose_epoch=verbose_epoch, full_history = full_history)
+        history = train_unsupervised(net, X, loss_func=loss_func, epoch = epoch, lr = lr, weight_decay = weight_decay, decay_epoch=decay_epoch, initialize_support=initialize_support, optimizer=optimizer, verbose=verbose, verbose_epoch=verbose_epoch, full_history = full_history)
 
     else:
-        history = train_supervised(net, X, label=label, L=L, loss_func=loss_func, epoch = 10, lr_nmf = lr, lr_classification = lr_classification, weight_decay = weight_decay, class_iters=class_iters, decay_epoch=decay_epoch, verbose=verbose, verbose_epoch=verbose_epoch, full_history = full_history)
+        history = train_supervised(net, X, label=label, L=L, loss_func=loss_func, epoch = 10, lr = lr, weight_decay = weight_decay, class_iters=class_iters, initialize_support=initialize_support, decay_epoch=decay_epoch, optimizer=optimizer, verbose=verbose, verbose_epoch=verbose_epoch, full_history = full_history)
 
     return history
 
 
 
-def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, weight_decay = 1, decay_epoch=1, verbose=True, verbose_epoch=1, full_history=False):
+def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, weight_decay = 1, decay_epoch=1, initialize_support = False, optimizer="gd", verbose=True, verbose_epoch=1, full_history=False):
     """
     Training the unsupervised Neural_NMF with projected gradient descent.
     
@@ -116,6 +123,11 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
         The weight decay parameter, doing lr = lr*weight_decay every decay_epoch epochs (default 1).
     decay_epoch: int_, optional
         Number of epochs to take before decaying the learning rates (default 1).
+    initialize_support: bool, optional
+        Indicator for whether to initialize the estimated support for the least squares solution
+        based on the previous support, when using the fnnls method
+    optimizer: string, optional
+        Optimizer to use to optimize Neural NMF model, either 'gd' for gradient descent of 'adam' for adam optimizer
     verbose: bool, optional
         Indicator for whether to print the loss every verbose_epoch epochs (default True).
     verbose_epoch: int_, optional
@@ -134,6 +146,9 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
         If full_history=False, stores a list of the S PyTorch tensors, S_0, S_1, ... S_L.
         
     """
+    
+    if optimizer != "gd" and optimizer != "adam":
+        raise ValueError("Expected 'gd' of 'adam' for optimizer, but optimizer parameter is {}".format(optimizer))
 
     loss_functions = {"Recon Loss": Recon_Loss_Func(), "Energy Loss": Energy_Loss_Func()}
 
@@ -150,10 +165,15 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
         config['t'] = 0
 
     S_lst = None
-    for i in range(epoch):
+    
+    if(verbose):
+        f = trange
+    else:
+        f = np.arange
+            
+    for i in f(epoch):
         net.zero_grad()
-        if S_lst != None:
-            #S_lst = net(X)
+        if S_lst != None and initialize_support:
             S_lst = net(X, [s.detach() for s in S_lst])
         else:
             S_lst = net(X)
@@ -181,13 +201,14 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
             if not full_history and i == epoch-1:
                A_lst.append(A)
 
-            # projected gradient descent
-            A.data = A.data.sub_(lr*A.grad.data)
-            #A.data, configs[l] = adam(A.data, A.grad.data, configs[l])
-            A.data = A.data.clamp(min = 0)
+            if(optimizer == "adam"):
+                A.data, configs[l] = adam(A.data, A.grad.data, configs[l])
+            else:
+                #projection gradient descent
+                A.data = A.data.sub_(lr*A.grad.data)
         
-        if verbose and (i+1)%verbose_epoch == 0:
-            print('epoch = ', i+1, '\n', loss.data)
+        #if verbose and (i+1)%verbose_epoch == 0:
+        #    print('epoch = ', i+1, '\n', loss.data)
         if (i+1)%decay_epoch == 0:
             lr = lr*weight_decay
 
@@ -196,7 +217,7 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
     else:
         return A_lst, S_lst
 
-def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10, lr_nmf = 1e-3, lr_classification = 1e-3, weight_decay = 1, class_iters=1, decay_epoch=1, verbose=True, verbose_epoch=1, full_history=False):
+def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10, lr = 1e-3, weight_decay = 1, class_iters=1, decay_epoch=1, initialize_support = False, optimizer="gd", verbose=True, verbose_epoch=1, full_history=False):
 
     """
     Training the supervised Neural_NMF with projected gradient descent (PGD). In each epoch, we update the NMF
@@ -222,16 +243,19 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
         allowing for custom loss functions. 
     epoch: int_, optional
         Number of epochs in training procedure (default 10).
-    lr_nmf: float_, optional
-        The learning rate for the NMF layers (default 1e-3).
-    lr_classification: float_, optional
-        The learning rate for the classification layer (default 1e-3).
+    lr: float_, optional
+        The learning rate.
     weight_decay: float, optional
         The weight decay parameter, doing lr = lr*weight_decay every decay_epoch epochs (default 1).
     class_iters: int_, optional
         Number of PGD updates to make to classification layer each epoch (default 1).
     decay_epoch: int_, optional
         Number of epochs to take before decaying the learning rates (default 1).
+    initialize_support: bool, optional
+        Indicator for whether to initialize the estimated support for the least squares solution
+        based on the previous support, when using the fnnls method
+    optimizer: string, optional
+        Optimizer to use to optimize Neural NMF model, either 'gd' for gradient descent of 'adam' for adam optimizer
     verbose: bool, optional
         Indicator for whether to print the loss every verbose_epoch epochs (default True).
     verbose_epoch: int_, optional
@@ -250,44 +274,66 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
         If full_history=False, stores a list of the S PyTorch tensors, S_0, S_1, ... S_L.
 
     """
+    
+    if optimizer != "gd" and optimizer != "adam":
+        raise ValueError("Expected 'gd' of 'adam' for optimizer, but optimizer parameter is {}".format(optimizer))
 
     loss_functions = {"Recon Loss": Recon_Loss_Func(), "Energy Loss": Energy_Loss_Func()}
 
     A_lst = []
     history = Writer() # creating a Writer object to record the history for the training process
 
-    configs = [{} for i in range(net.depth-1)]
-    config_w = {}
-
-    for config in configs:
-        config['learning_rate'] = lr_nmf
-        config['beta1'] = 0.9
-        config['beta2'] = 0.99
-        config['epsilon'] = 1e-8
-        config['t'] = 0
-
-    config_w['learning_rate'] = lr_classification
-    config_w['beta1'] = 0.9
-    config_w['beta2'] = 0.99
-    config_w['epsilon'] = 1e-8
-    config_w['t'] = 0
-
-
-
-    for i in range(epoch):
+    if(optimizer == "adam"):
         
+        configs = [{} for i in range(net.depth-1)]
+        config_w = {}
+
+        for config in configs:
+            config['learning_rate'] = lr
+            config['beta1'] = 0.9
+            config['beta2'] = 0.99
+            config['epsilon'] = 1e-8
+            config['t'] = 0
+
+    S_lst = None
+    
+    
+    Y = torch.zeros((net.depth_info[-1],label.shape[0]), dtype=torch.double)
+    r = np.arange(X.shape[1])
+    Y[[label,r]] = 1
+    Y = Y * L
+    
+    if(verbose):
+        f = trange
+    else:
+        f = np.arange
+            
+    for i in f(epoch):
         # doing gradient update for NMF layer
         net.zero_grad()
-        S_lst, pred = net(X)
-        loss = None
-        if type(loss_func) == str:
-            loss = loss_functions[loss_func](net, X, S_lst)
+        if S_lst != None and initialize_support:
+            S_lst, pred = net(X, Y=Y, L=L, last_S_lst=[s.detach() for s in S_lst])
         else:
-            loss = loss_func(net, X, S_lst)
+            S_lst, pred = net(X, Y=Y, L=L)
+
+        loss = None
+        
+        if type(loss_func) == str:
+            loss_nmf = loss_functions[loss_func](net, X, S_lst)
+        else:
+            loss_nmf = loss_func(net, X, S_lst)
+         
+        if type(loss_func) == str:
+                loss = loss_functions[loss_func](net, X, S_lst,pred,label,L)
+        else:
+            loss = loss_func(net, X, S_lst,pred,label,L)
+           
+                
         loss.backward()
+        history.add_scalar('loss_nmf',loss_nmf.data)
+        history.add_scalar('loss_classification',loss.data)
         for l in range(net.depth - 1):
 
-            history.add_scalar('loss_nmf',loss.data)
             A = net.lsqnonneglst[l].A
             # record history
             if full_history:
@@ -297,47 +343,24 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
 
             if not full_history and i == epoch-1:
                 A_lst.append(A)
-            # projection gradient descent
-            A.data = A.data.sub_(lr_nmf*A.grad.data)
-            #return history
-            #A.data, configs[l] = adam(A.data, A.grad.data, configs[l])
-            #print(A.grad.data)
+
+            if(optimizer == "adam"):
+                A.data, configs[l] = adam(A.data, A.grad.data, configs[l])
+            else:
+                A.data = A.data.sub_(lr*A.grad.data)
+
             A.data = A.data.clamp(min = 0)
             
-        # doing gradient update for classification layer
-        for iter_classifier in range(class_iters):
-            net.zero_grad()
-            S_lst, pred = net(X)
-            history.add_tensor('pred', pred)
-            loss = None
-            if type(loss_func) == str:
-                loss = loss_functions[loss_func](net, X, S_lst,pred,label,L)
-            else:
-                loss = loss_func(net, X, S_lst,pred,label,L)
-            loss.backward()
-            S_lst[0].detach()
-            history.add_scalar('loss_classification',loss.data)
-            weight = net.linear.weight
-            weight.data = weight.data.sub_(lr_classification*weight.grad.data)
-            #weight.data, config_w = adam(weight.data, weight.grad.data, config_w)
-
-            weight.data = weight.data.clamp(min = 0) #added by Jamie (shouldn't we make sure B >= 0?)
-            if full_history:
-                history.add_tensor('weight', weight.data.clone())
-                history.add_tensor('grad_weight', weight.grad.data.clone())
         
-        
-        if(verbose) and (i+1)%verbose_epoch == 0:
-            print('epoch = ', i+1, '\n', loss.data)
+        #if(verbose) and (i+1)%verbose_epoch == 0:
+        #    print('epoch = ', i+1, '\n', loss.data)
         if (i+1)%decay_epoch == 0:
-            lr_nmf = lr_nmf*weight_decay
-            lr_classification = lr_classification*weight_decay
+            lr = lr*weight_decay
 
     if full_history:        
         return history
     else:
         return A_lst, S_lst
-
 
 
 def adam(w, dw, config=None):
@@ -390,3 +413,4 @@ def adam(w, dw, config=None):
     config['t']  = t
     
     return next_w, config
+

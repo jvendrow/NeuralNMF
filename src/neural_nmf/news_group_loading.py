@@ -10,7 +10,7 @@ import numpy as np
 
 
 def get_data():
-    data = sio.loadmat('../data/20News_subsampled.mat')
+    data = sio.loadmat('../../data/20News_subsampled.mat')
     X = data.get("X_subsampled")
     Y_sub = data.get("Ysub")
     Y_super = data.get("Ysuper")

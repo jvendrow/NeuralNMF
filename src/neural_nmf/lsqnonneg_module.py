@@ -14,7 +14,6 @@ from torch.autograd.function import once_differentiable
 from scipy.optimize import nnls
 
 from fnnls import fnnls
-from fnnls import RK
 
 class LsqNonnegF(torch.autograd.Function):
     """
@@ -22,7 +21,7 @@ class LsqNonnegF(torch.autograd.Function):
 
     """
     @staticmethod
-    def forward(ctx, input, A):
+    def forward(ctx, input, A, last_S=None):
         """
         Runs the forward pass of the nonnegative least squares task q(X,A).
 
@@ -46,8 +45,8 @@ class LsqNonnegF(torch.autograd.Function):
 
         """
 
-        [output, res] = lsqnonneg_tensor_version(A.data, input.data)
-        ctx.save_for_backward(input, A)
+        [output, res] = lsqnonneg_tensor_version(A.data, input.data, last_S)
+        ctx.save_for_backward(input, A, None)
         ctx.intermediate = output
         return output.t().t()
     
@@ -74,19 +73,19 @@ class LsqNonnegF(torch.autograd.Function):
 
         """
 
-        input, A = ctx.saved_tensors
+        input, A, temp = ctx.saved_tensors
         grad_input = grad_A = None
         output = ctx.intermediate
         if ctx.needs_input_grad[0]:
             grad_input = calc_grad_X(grad_output, A.data, output)# calculate gradient with respect to X
         if ctx.needs_input_grad[1]:
             grad_A = calc_grad_A(grad_output, A.data, output, input.data) # calculate gradient with respect to A
-        return grad_input, grad_A
+        return grad_input, grad_A, None
 
 
 
 
-def lsqnonneg_tensor_version(A, X):
+def lsqnonneg_tensor_version(A, X, last_S=None):
     """
     Calculates the nonnegative least squares solution q(X,A).
 
@@ -115,10 +114,19 @@ def lsqnonneg_tensor_version(A, X):
     res_total = 0
     for i in range(n):
         x = X[:,i]
+
+        if last_S != None:
+            P_initial = np.asarray([j for j in range(k) if last_S[j,i] > 0], dtype=int)
+        else:
+            P_initial = np.zeros(0, dtype=int)
+
         #[s, res] = nnls(A, x)
-        [s, res] = fnnls(A, x)
+        #[s, res] = fnnls(A, x)
+        [s, res] = fnnls(A, x, P_initial=P_initial)
+
         res_total += res
         S[:,i] = s
+
     S = torch.from_numpy(S).double() # Transforming to torch Tensor
     return S, res_total
 
@@ -230,7 +238,7 @@ class LsqNonneg(nn.Module):
         else:
             self.A.data = initial_A
         
-    def forward(self, input):
+    def forward(self, input, last_S=None):
         """
         The forward pass of the LsqNonneg submodule.
 
@@ -245,5 +253,5 @@ class LsqNonneg(nn.Module):
             The output of the LsqNonnegF forward pass, S = q(X,A).
         """
 
-        return LsqNonnegF.apply(input, self.A)
+        return LsqNonnegF.apply(input, self.A,last_S)
 
