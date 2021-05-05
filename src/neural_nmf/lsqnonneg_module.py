@@ -120,9 +120,9 @@ def lsqnonneg_tensor_version(A, X, last_S=None):
         else:
             P_initial = np.zeros(0, dtype=int)
 
-        #[s, res] = nnls(A, x)
+        [s, res] = nnls(A, x)
         #[s, res] = fnnls(A, x)
-        [s, res] = fnnls(A, x, P_initial=P_initial)
+        #[s, res] = fnnls(A, x, P_initial=P_initial)
 
         res_total += res
         S[:,i] = s
