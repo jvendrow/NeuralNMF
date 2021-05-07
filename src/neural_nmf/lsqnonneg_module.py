@@ -112,6 +112,8 @@ def lsqnonneg_tensor_version(A, X, last_S=None):
     k = A.shape[1]
     S = np.zeros([k,n])
     res_total = 0
+    
+    #print([np.max(A),np.max(X)])
     for i in range(n):
         x = X[:,i]
 
