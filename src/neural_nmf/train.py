@@ -194,9 +194,9 @@ def train_unsupervised(net, X, loss_func="Recon Loss", epoch = 10, lr = 1e-3, we
             A = net.lsqnonneglst[l].A
             # record history
             if full_history:
-                history.add_tensor('A'+str(l+1), A.data)
-                history.add_tensor('grad_A'+str(l+1), A.grad.data)
-                history.add_tensor('S' + str(l+1), S_lst[l].data)
+                history.add_tensor('A'+str(l+1), A.data.clone())
+                history.add_tensor('grad_A'+str(l+1), A.grad.data.clone())
+                history.add_tensor('S' + str(l+1), S_lst[l].data.clone())
 
             if not full_history and i == epoch-1:
                A_lst.append(A)
@@ -337,9 +337,9 @@ def train_supervised(net, X, label, L = None, loss_func="Recon Loss", epoch = 10
             A = net.lsqnonneglst[l].A
             # record history
             if full_history:
-                history.add_tensor('A'+str(l+1), A.data)
-                history.add_tensor('grad_A'+str(l+1), A.grad.data)
-                history.add_tensor('S' + str(l+1), S_lst[l].data)
+                history.add_tensor('A'+str(l+1), A.data.clone())
+                history.add_tensor('grad_A'+str(l+1), A.grad.data.clone())
+                history.add_tensor('S' + str(l+1), S_lst[l].data.clone())
 
             if not full_history and i == epoch-1:
                 A_lst.append(A)
