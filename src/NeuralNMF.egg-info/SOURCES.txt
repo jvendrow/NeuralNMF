@@ -1,0 +1,16 @@
+LICENSE
+README.md
+setup.cfg
+setup.py
+src/NeuralNMF/__init__.py
+src/NeuralNMF/loss.py
+src/NeuralNMF/lsqnonneg_module.py
+src/NeuralNMF/model.py
+src/NeuralNMF/news_group_loading.py
+src/NeuralNMF/train.py
+src/NeuralNMF/writer.py
+src/NeuralNMF.egg-info/PKG-INFO
+src/NeuralNMF.egg-info/SOURCES.txt
+src/NeuralNMF.egg-info/dependency_links.txt
+src/NeuralNMF.egg-info/requires.txt
+src/NeuralNMF.egg-info/top_level.txt

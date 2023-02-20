@@ -1,0 +1,9 @@
+LICENSE
+README.md
+setup.cfg
+setup.py
+src/neural_nmf/NeuralNMF.egg-info/PKG-INFO
+src/neural_nmf/NeuralNMF.egg-info/SOURCES.txt
+src/neural_nmf/NeuralNMF.egg-info/dependency_links.txt
+src/neural_nmf/NeuralNMF.egg-info/requires.txt
+src/neural_nmf/NeuralNMF.egg-info/top_level.txt
